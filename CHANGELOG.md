@@ -5,9 +5,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [1.0.0] - 2026-06-16
+
+Première version stable. Inclut l'ensemble des fonctionnalités ci-dessous.
 
 ### Ajouté
+- Impression directe `DirectPrinter` (texte, données brutes, ESC/POS, fichiers).
+- Tickets de caisse `Thermal\ThermalPrinter` + `Thermal\ReceiptData`.
+- Connecteurs `Connector\ConnectorFactory` / `Connector\PrinterConnectionConfig`
+  (network, windows, cups, smb, file/usb).
+- Découverte des imprimantes du poste `Discovery\SystemPrinters` (Windows PowerShell/WMIC, CUPS).
+- Impression via spouleur OS `Printing\SpooledFilePrint` + `Laraprint::printFile()`.
+- Utilitaires `Support\PaperSize`, `Support\ReceiptConfig`, `Support\PrinterType`.
+- Modèles Eloquent `Workstation`, `Printer`, `PrinterCredential` et migrations publiables.
+- Configuration publiable `config/laraprint.php`.
 - **Gestion des imprimantes en base** via `Printers\PrinterRegistry` : lister (`all`, `active`),
   rechercher (`find`, `findByName`), ajouter (`register`), importer depuis l'OS
   (`importSystemPrinters`), supprimer (`forget`).
@@ -40,15 +51,4 @@ et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 - Alignement du nom de package dans le README (`neocode/laraprint`).
 - Suppression d'un fichier artefact accidentel à la racine et nettoyage du `.gitignore`.
 
-## [1.0.0]
-
-### Ajouté
-- Impression directe `DirectPrinter` (texte, données brutes, ESC/POS, fichiers).
-- Tickets de caisse `Thermal\ThermalPrinter` + `Thermal\ReceiptData`.
-- Connecteurs `Connector\ConnectorFactory` / `Connector\PrinterConnectionConfig`
-  (network, windows, cups, smb, file/usb).
-- Découverte des imprimantes du poste `Discovery\SystemPrinters` (Windows PowerShell/WMIC, CUPS).
-- Impression via spouleur OS `Printing\SpooledFilePrint` + `Laraprint::printFile()`.
-- Utilitaires `Support\PaperSize`, `Support\ReceiptConfig`, `Support\PrinterType`.
-- Modèles Eloquent `Workstation`, `Printer`, `PrinterCredential` et migrations publiables.
-- Configuration publiable `config/laraprint.php`.
+[1.0.0]: https://github.com/neocodesupport/laraprint/releases/tag/v1.0.0
