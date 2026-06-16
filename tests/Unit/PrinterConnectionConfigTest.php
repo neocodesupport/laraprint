@@ -42,6 +42,13 @@ final class PrinterConnectionConfigTest extends TestCase
         $this->assertSame('network', $config->connectionType);
     }
 
+    public function test_it_normalizes_connection_type_case_and_spaces(): void
+    {
+        $this->assertSame('network', PrinterConnectionConfig::fromArray(['connection_type' => 'NETWORK'])->connectionType);
+        $this->assertSame('cups', PrinterConnectionConfig::fromArray(['type' => '  Cups '])->connectionType);
+        $this->assertSame('windows', PrinterConnectionConfig::fromArray(['connection_type' => 'Windows'])->connectionType);
+    }
+
     public function test_it_falls_back_settings_to_whole_array(): void
     {
         $config = PrinterConnectionConfig::fromArray(['ip' => '10.0.0.1', 'port' => 9100]);

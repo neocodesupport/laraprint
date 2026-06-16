@@ -42,8 +42,10 @@ final class PrinterConnectionConfig
             }
         }
 
+        $connectionType = $data['connection_type'] ?? $data['type'] ?? 'network';
+
         return new self(
-            connectionType: $data['connection_type'] ?? $data['type'] ?? 'network',
+            connectionType: strtolower(trim((string) $connectionType)),
             settings: $data['settings'] ?? $data,
             name: $data['name'] ?? null,
             printerType: $printerType,

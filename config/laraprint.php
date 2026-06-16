@@ -44,6 +44,14 @@ return [
         'cups' => [
             'cups_name' => env('LARAPRINT_CUPS_NAME', 'POS-Printer'),
         ],
+        'smb' => [
+            // SMB passe par une file CUPS configurée pour le partage.
+            'cups_name' => env('LARAPRINT_SMB_CUPS_NAME', 'POS-Printer'),
+        ],
+        'usb' => [
+            // Périphérique brut (ex. /dev/usb/lp0, COM3).
+            'path' => env('LARAPRINT_USB_PATH', '/dev/usb/lp0'),
+        ],
         'file' => [
             'path' => env('LARAPRINT_FILE_PATH', storage_path('app/receipts/receipt.txt')),
         ],
