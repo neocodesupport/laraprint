@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Neocode\Laraprint;
 
 use Illuminate\Support\ServiceProvider;
+use Neocode\Laraprint\Console\PrintersCommand;
 use Neocode\Laraprint\Printers\PrinterRegistry;
 
 class LaraprintServiceProvider extends ServiceProvider
@@ -29,6 +30,10 @@ class LaraprintServiceProvider extends ServiceProvider
             $this->publishes([
                 __DIR__.'/../database/migrations/' => database_path('migrations'),
             ], 'laraprint-migrations');
+
+            $this->commands([
+                PrintersCommand::class,
+            ]);
         }
     }
 }

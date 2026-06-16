@@ -568,6 +568,22 @@ $registry->forget($id);             // supprime l'enregistrement
 
 `Laraprint::registerPrinter()`, `Laraprint::setDefaultPrinter()`, `Laraprint::defaultPrinter()`, `Laraprint::usePrinter()`.
 
+### Commande Artisan
+
+Gérez les imprimantes depuis le terminal (nécessite les migrations publiées) :
+
+```bash
+php artisan laraprint:printers list           # liste les imprimantes enregistrées
+php artisan laraprint:printers add \
+    --name="Caisse 1" --type=network \
+    --setting=ip=192.168.1.20 --setting=port=9100 \
+    --printer-type=thermal_escpos_raw --default
+php artisan laraprint:printers default 1 --machine  # défaut pour la machine courante
+php artisan laraprint:printers import         # importe les imprimantes du poste
+php artisan laraprint:printers test 1         # imprime un ticket de test (id, nom, ou défaut)
+php artisan laraprint:printers remove 1
+```
+
 ---
 
 ## Imprimante par défaut : machine + session

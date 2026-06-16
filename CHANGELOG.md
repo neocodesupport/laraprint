@@ -5,6 +5,13 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+- **Commande Artisan** `laraprint:printers` (`Console\PrintersCommand`) : `list`, `add`,
+  `default` (avec `--machine`), `import`, `remove`, `test`.
+- Fichiers `CONTRIBUTING.md` et `PUBLISHING.md` (guide de publication Packagist).
+
 ## [1.0.0] - 2026-06-16
 
 Première version stable. Inclut l'ensemble des fonctionnalités ci-dessous.

@@ -17,4 +17,6 @@
 .editorconfig       export-ignore
 phpunit.xml         export-ignore
 CHANGELOG.md        export-ignore
+CONTRIBUTING.md     export-ignore
+PUBLISHING.md       export-ignore
 README.fr.md        export-ignore
