@@ -5,7 +5,7 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
-## [Non publié]
+## [1.2.3] - 2026-06-16
 
 ### Ajouté
 - **Enum `Support\ConnectionType`** — source de vérité des `connection_type` (valeurs,
@@ -133,6 +133,7 @@ Première version stable. Inclut l'ensemble des fonctionnalités ci-dessous.
 - Alignement du nom de package dans le README (`neocode/laraprint`).
 - Suppression d'un fichier artefact accidentel à la racine et nettoyage du `.gitignore`.
 
+[1.2.3]: https://github.com/neocodesupport/laraprint/releases/tag/v1.2.3
 [1.2.2]: https://github.com/neocodesupport/laraprint/releases/tag/v1.2.2
 [1.2.1]: https://github.com/neocodesupport/laraprint/releases/tag/v1.2.1
 [1.2.0]: https://github.com/neocodesupport/laraprint/releases/tag/v1.2.0
