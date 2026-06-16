@@ -1,0 +1,41 @@
+{
+    "name": "neocode/laraprint",
+    "description": "SDK d'impression thermique (ESC/POS) et gestion d'imprimantes pour Laravel 11+",
+    "keywords": ["laravel", "printer", "escpos", "thermal", "receipt", "pos"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Neocode",
+            "email": "support@necode.ci"
+        }
+    ],
+    "require": {
+        "php": "^8.3",
+        "illuminate/support": "^11.0|^12.0|^13.0",
+        "illuminate/contracts": "^11.0|^12.0|^13.0",
+        "illuminate/database": "^11.0|^12.0|^13.0",
+        "mike42/escpos-php": "^2.2"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^10.0|^11.0|^12.0",
+        "laravel/pint": "^1.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Neocode\\Laraprint\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Neocode\\Laraprint\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Neocode\\Laraprint\\LaraprintServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable"
+}
