@@ -13,6 +13,7 @@ use Neocode\Laraprint\Discovery\NetworkScanner;
 use Neocode\Laraprint\Discovery\SystemPrinters;
 use Neocode\Laraprint\Models\Printer;
 use Neocode\Laraprint\Models\Workstation;
+use Neocode\Laraprint\Support\ConnectionType;
 use Neocode\Laraprint\Support\PrinterType;
 use Neocode\Laraprint\Support\ReceiptConfig;
 use Neocode\Laraprint\Thermal\ThermalPrinter;
@@ -105,12 +106,13 @@ final class PrinterRegistry
         }
 
         $makeDefault = (bool) ($attributes['is_default'] ?? false);
+        $connectionType = $this->normalizeConnectionType($attributes['connection_type'] ?? $attributes['type'] ?? 'network');
 
         $printer = new Printer;
         $printer->fill([
             'workstation_id' => $attributes['workstation_id'] ?? null,
             'name' => $name,
-            'connection_type' => $attributes['connection_type'] ?? $attributes['type'] ?? 'network',
+            'connection_type' => $connectionType,
             'printer_type' => $this->normalizePrinterType($attributes['printer_type'] ?? null),
             'model' => $attributes['model'] ?? null,
             'is_active' => (bool) ($attributes['is_active'] ?? true),
@@ -379,6 +381,20 @@ final class PrinterRegistry
         }
 
         return $this->default();
+    }
+
+    private function normalizeConnectionType(string $type): string
+    {
+        $normalized = strtolower(trim($type));
+        if (ConnectionType::tryFrom($normalized) === null) {
+            throw new InvalidArgumentException(sprintf(
+                'connection_type invalide : « %s ». Valeurs autorisées : %s.',
+                $type,
+                implode(', ', ConnectionType::values()),
+            ));
+        }
+
+        return $normalized;
     }
 
     private function normalizePrinterType(string|PrinterType|null $type): ?string

@@ -890,7 +890,7 @@ dispatch(PrintJob::receipt($config, $receiptData, config('laraprint.receipt')))
     ->onQueue('printing')
     ->onConnection('redis');
 
-PrintJob::text($config, "Hello\n")->onQueue('printing'); // also dispatchable
+dispatch(PrintJob::text($config, "Hello\n")->onQueue('printing'));
 ```
 
 `$config` is any connection config array (e.g. from `Laraprint::printers()->connectionConfig($id)`).
@@ -1102,7 +1102,7 @@ $printer->assertNothingPrinted();
 | `…\Thermal\*` | `ThermalPrinter`, `ReceiptData` — cash receipts. |
 | `…\Printers\*` | `PrinterRegistry`, `CurrentWorkstation` — management & machine/session default. |
 | `…\Models\*` | `Workstation`, `Printer`, `PrinterCredential`, `PrintJobRecord` — persistence (optional). |
-| `…\Support\*` | `PaperSize`, `ReceiptConfig`, `PrinterType`, `PrinterStatus`, `Telemetry`. |
+| `…\Support\*` | `PaperSize`, `ReceiptConfig`, `PrinterType`, `ConnectionType`, `PrinterStatus`, `Telemetry`. |
 | `…\Testing\*` | `PrintRecorder`, `CaptureConnector` — `Laraprint::fake()` support. |
 | `…\Events\*` | `PrintJobStarted`, `PrintJobCompleted`, `PrintJobFailed`. |
 

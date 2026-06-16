@@ -12,6 +12,7 @@ use Neocode\Laraprint\Events\PrintJobCompleted;
 use Neocode\Laraprint\Events\PrintJobFailed;
 use Neocode\Laraprint\Events\PrintJobStarted;
 use Neocode\Laraprint\Printing\SpooledFilePrint;
+use Neocode\Laraprint\Support\ConnectionType;
 use Neocode\Laraprint\Support\PrinterStatus;
 use Neocode\Laraprint\Support\PrinterType;
 use Neocode\Laraprint\Support\Telemetry;
@@ -100,14 +101,9 @@ class DirectPrinter
         // Si on est sur une imprimante "document" (PDF/Word/Excel), on doit laisser Windows/CUPS
         // convertir via pilotes, sinon l'envoi ESC/POS brut produit du charabia.
         $cfg = PrinterConnectionConfig::fromArray($this->connectionConfig);
-        $effectiveType = $printerType ?? $cfg->printerType;
-        if ($effectiveType === null) {
-            $effectiveType = match ($cfg->connectionType) {
-                'windows' => PrinterType::WindowsSpoolDocument,
-                'cups', 'smb' => PrinterType::CupsSpoolDocument,
-                default => PrinterType::ThermalEscposRaw,
-            };
-        }
+        $effectiveType = $printerType
+            ?? $cfg->printerType
+            ?? ConnectionType::inferPrinterType($cfg->connectionType);
 
         if ($effectiveType === PrinterType::WindowsSpoolDocument || $effectiveType === PrinterType::CupsSpoolDocument) {
             SpooledFilePrint::submit($path, $this->connectionConfig);

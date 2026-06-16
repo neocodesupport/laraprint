@@ -20,6 +20,7 @@ use Neocode\Laraprint\Models\Workstation;
 use Neocode\Laraprint\Printers\PrinterRegistry;
 use Neocode\Laraprint\Printing\IppClient;
 use Neocode\Laraprint\Printing\SpooledFilePrint;
+use Neocode\Laraprint\Support\ConnectionType;
 use Neocode\Laraprint\Support\PrinterStatus;
 use Neocode\Laraprint\Support\PrinterType;
 use Neocode\Laraprint\Support\ReceiptConfig;
@@ -399,14 +400,9 @@ final class Laraprint
     ): void {
         $cfg = PrinterConnectionConfig::fromArray($connectionConfig);
 
-        $effectiveType = $printerType ?? $cfg->printerType;
-        if ($effectiveType === null) {
-            $effectiveType = match ($cfg->connectionType) {
-                'windows' => PrinterType::WindowsSpoolDocument,
-                'cups', 'smb' => PrinterType::CupsSpoolDocument,
-                default => PrinterType::ThermalEscposRaw,
-            };
-        }
+        $effectiveType = $printerType
+            ?? $cfg->printerType
+            ?? ConnectionType::inferPrinterType($cfg->connectionType);
 
         match ($effectiveType) {
             PrinterType::ThermalEscposRaw => DirectPrinter::forPrinter($connectionConfig)

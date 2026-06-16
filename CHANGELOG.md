@@ -5,6 +5,21 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+- **Enum `Support\ConnectionType`** — source de vérité des `connection_type` (valeurs,
+  `usesSpooler()`, `defaultPrinterType()`, `inferPrinterType()`).
+- Validation du `connection_type` à l'enregistrement (`PrinterRegistry::register`).
+
+### Modifié
+- `connection_type` normalisé (minuscule + trim) dans `PrinterConnectionConfig` et à l'enregistrement.
+- Inférence de la stratégie d'impression de fichier factorisée via `ConnectionType::inferPrinterType()`
+  (suppression de la duplication entre `Laraprint::printFile` et `DirectPrinter::printFile`).
+- `Jobs\PrintJob` n'utilise plus le trait `Dispatchable` (suppression de la dépendance douce
+  à `illuminate/foundation`) ; dispatch via le helper `dispatch()`.
+- Config : ajout des blocs `smb` et `usb`.
+
 ## [1.2.2] - 2026-06-16
 
 ### Ajouté

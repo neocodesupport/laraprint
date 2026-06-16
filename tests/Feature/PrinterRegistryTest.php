@@ -47,6 +47,19 @@ final class PrinterRegistryTest extends DatabaseTestCase
         $this->registry()->register(['name' => 'X', 'printer_type' => 'bogus']);
     }
 
+    public function test_it_rejects_invalid_connection_type(): void
+    {
+        $this->expectException(InvalidArgumentException::class);
+        $this->registry()->register(['name' => 'X', 'connection_type' => 'carrier-pigeon', 'settings' => ['ip' => '10.0.0.1']]);
+    }
+
+    public function test_it_normalizes_connection_type_case(): void
+    {
+        $printer = $this->registry()->register(['name' => 'Caps', 'connection_type' => 'NETWORK', 'settings' => ['ip' => '10.0.0.1']]);
+
+        $this->assertSame('network', $printer->connection_type);
+    }
+
     public function test_it_accepts_printer_type_enum(): void
     {
         $printer = $this->registry()->register([
