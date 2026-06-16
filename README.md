@@ -4,7 +4,7 @@
 [![Total Downloads](https://img.shields.io/packagist/dt/neocode/laraprint.svg?style=flat-square)](https://packagist.org/packages/neocode/laraprint)
 [![PHP Version](https://img.shields.io/packagist/php-v/neocode/laraprint.svg?style=flat-square)](https://packagist.org/packages/neocode/laraprint)
 [![Laravel](https://img.shields.io/badge/Laravel-11%20%7C%2012%20%7C%2013-FF2D20.svg?style=flat-square&logo=laravel)](https://laravel.com)
-[![Tests](https://img.shields.io/github/actions/workflow/status/neocode/laraprint/tests.yml?branch=main&style=flat-square&label=tests&logo=github)](https://github.com/neocode/laraprint/actions/workflows/tests.yml)
+[![Tests](https://img.shields.io/github/actions/workflow/status/neocodesupport/laraprint/tests.yml?branch=main&style=flat-square&label=tests&logo=github)](https://github.com/neocodesupport/laraprint/actions/workflows/tests.yml)
 [![License](https://img.shields.io/packagist/l/neocode/laraprint.svg?style=flat-square)](LICENSE)
 
 🇫🇷 [Version française](README.fr.md)
