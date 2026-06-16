@@ -302,6 +302,8 @@ $printer
 | `printTextAndClose(string $text): bool` | Send text then close. |
 | `feed(int $lines = 1): self` | Line feed. |
 | `cut(int $mode = CUT_FULL, int $lines = 3): self` | Cut the paper (thermal printers). |
+| `openCashDrawer(int $pin = 0): self` | Open the cash drawer (ESC/POS pulse). |
+| `queryStatus(): PrinterStatus` | Query real-time status (best-effort; network/device). |
 | `getEscposPrinter(): \Mike42\Escpos\Printer` | Full access to the ESC/POS API (barcodes, images, QR…). |
 | `testConnection(): bool` | Test open/close without printing. |
 | `close(): void` | Close the connection (idempotent; also called on `__destruct`). |
@@ -325,6 +327,23 @@ $p->cut()->close();
 ```
 
 ---
+
+### Cash drawer & status
+
+```php
+// Open the cash drawer wired to the printer
+Laraprint::openCashDrawer($config);              // or DirectPrinter::forPrinter($config)->openCashDrawer()->close()
+
+// Query real-time status (best-effort; works over network / device connectors)
+$status = Laraprint::printerStatus($config);
+$status->online;        // ?bool
+$status->paperOut;      // ?bool
+$status->coverOpen;     // ?bool
+$status->paperNearEnd;  // ?bool
+$status->isReady();     // online, paper present, cover closed
+```
+
+`null` fields mean "unknown" (no response from the printer).
 
 ## Printing a file
 
@@ -735,6 +754,9 @@ Laraprint::printer($config)->printTextAndClose("OK\n");
 | Method | Returns | Purpose |
 | --- | --- | --- |
 | `printer(array $config)` | `DirectPrinter` | Direct printing. |
+| `fake()` | `PrintRecorder` | Capture prints for testing. |
+| `openCashDrawer(array $config, int $pin = 0)` | `void` | Open the cash drawer. |
+| `printerStatus(array $config)` | `PrinterStatus` | Query real-time status. |
 | `thermalPrinter(array $config, array\|ReceiptConfig $receipt)` | `ThermalPrinter` | Cash receipt. |
 | `connector(array $config)` | ESC/POS connector | Low-level connector. |
 | `connectionConfig(array $data)` | `PrinterConnectionConfig` | Connection DTO. |
@@ -803,6 +825,17 @@ PrintJob::text($config, "Hello\n")->onQueue('printing'); // also dispatchable
 
 `$config` is any connection config array (e.g. from `Laraprint::printers()->connectionConfig($id)`).
 Failures still fire the `PrintJobFailed` event and are logged. Run a worker: `php artisan queue:work`.
+
+**Job tracking** — if the `print_jobs` migration is published, the queue helpers record each job
+(`queued → printing → completed/failed`, attempts, error). Inspect from the CLI:
+
+```bash
+php artisan laraprint:jobs                 # recent print jobs
+php artisan laraprint:jobs --status=failed --limit=50
+```
+
+Query them in code via `Neocode\Laraprint\Models\PrintJobRecord`. Tracking is optional: without the
+table, printing works exactly the same.
 
 ## Events & logs
 
@@ -950,11 +983,34 @@ composer install
 vendor/bin/phpunit
 ```
 
-Code style via **Laravel Pint**:
+Code style via **Laravel Pint**, static analysis via **PHPStan**:
 
 ```bash
-vendor/bin/pint          # fix
-vendor/bin/pint --test   # check without modifying
+vendor/bin/pint          # fix style
+vendor/bin/pint --test   # check style
+vendor/bin/phpstan       # static analysis (level 5)
+```
+
+### Testing your app with `Laraprint::fake()`
+
+In your application's tests, fake the SDK to capture prints instead of sending them to a printer
+(no hardware/network needed) — similar to `Mail::fake()`:
+
+```php
+use Neocode\Laraprint\Laraprint;
+
+$printer = Laraprint::fake();
+
+// ... code under test that prints ...
+Laraprint::printer($config)->printText("Ticket #42\n")->cut()->close();
+
+$printer->assertPrinted()
+    ->assertPrintedTimes(1)
+    ->assertPrintedContains('Ticket #42');
+
+// Receipts, files and the queued PrintJob are captured too
+$printer->assertPrinted(fn ($job) => $job['channel'] === 'print');
+$printer->assertNothingPrinted();
 ```
 
 ---
@@ -967,13 +1023,14 @@ vendor/bin/pint --test   # check without modifying
 | `…\DirectPrinter` | Direct printing (text, raw, ESC/POS, file). |
 | `…\Connector\*` | `ConnectorFactory`, `PrinterConnectionConfig` — connector creation. |
 | `…\Discovery\*` | `SystemPrinters` (OS queues), `LocalPrinters` (USB), `NetworkScanner` (network), `MdnsScanner` (AirPrint). |
-| `…\Console\PrintersCommand` | `laraprint:printers` Artisan command. |
+| `…\Console\*` | `PrintersCommand` (`laraprint:printers`), `PrintJobsCommand` (`laraprint:jobs`). |
 | `…\Jobs\PrintJob` | Queued (asynchronous) print job. |
 | `…\Printing\SpooledFilePrint` | File submission via the OS spooler. |
 | `…\Thermal\*` | `ThermalPrinter`, `ReceiptData` — cash receipts. |
 | `…\Printers\*` | `PrinterRegistry`, `CurrentWorkstation` — management & machine/session default. |
-| `…\Models\*` | `Workstation`, `Printer`, `PrinterCredential` — persistence (optional). |
-| `…\Support\*` | `PaperSize`, `ReceiptConfig`, `PrinterType`, `Telemetry`. |
+| `…\Models\*` | `Workstation`, `Printer`, `PrinterCredential`, `PrintJobRecord` — persistence (optional). |
+| `…\Support\*` | `PaperSize`, `ReceiptConfig`, `PrinterType`, `PrinterStatus`, `Telemetry`. |
+| `…\Testing\*` | `PrintRecorder`, `CaptureConnector` — `Laraprint::fake()` support. |
 | `…\Events\*` | `PrintJobStarted`, `PrintJobCompleted`, `PrintJobFailed`. |
 
 > The **docs/RECAP_IMPRESSION.md** document lists everything print-related in the original MedSoft project (models, migrations, services, controllers, routes, views, config, tests) — a reference for evolving Laraprint or migrating an app to the SDK.

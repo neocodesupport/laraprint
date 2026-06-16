@@ -1,0 +1,10 @@
+includes:
+    # Larastan (extension Laravel) n'est pas encore disponible pour Laravel 13 :
+    # une baseline absorbe la magie Eloquent/façades en attendant.
+    - phpstan-baseline.neon
+
+parameters:
+    level: 5
+    paths:
+        - src
+    treatPhpDocTypesAsCertain: false

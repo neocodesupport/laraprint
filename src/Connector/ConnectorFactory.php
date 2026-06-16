@@ -7,7 +7,10 @@ namespace Neocode\Laraprint\Connector;
 use Mike42\Escpos\PrintConnectors\CupsPrintConnector;
 use Mike42\Escpos\PrintConnectors\FilePrintConnector;
 use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
+use Mike42\Escpos\PrintConnectors\PrintConnector;
 use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use Neocode\Laraprint\Testing\CaptureConnector;
+use Neocode\Laraprint\Testing\PrintRecorder;
 use RuntimeException;
 
 /**
@@ -20,15 +23,20 @@ class ConnectorFactory
      *
      * @param  array{connection_type?: string, type?: string, settings?: array<string, mixed>}  $config
      */
-    public static function fromArray(array $config): NetworkPrintConnector|WindowsPrintConnector|CupsPrintConnector|FilePrintConnector
+    public static function fromArray(array $config): PrintConnector
     {
         return self::fromConfig(PrinterConnectionConfig::fromArray($config));
     }
 
-    public static function fromConfig(PrinterConnectionConfig $config): NetworkPrintConnector|WindowsPrintConnector|CupsPrintConnector|FilePrintConnector
+    public static function fromConfig(PrinterConnectionConfig $config): PrintConnector
     {
         if (! $config->isActive) {
             throw new RuntimeException("L'imprimante '{$config->name}' est désactivée.");
+        }
+
+        // Mode test : on capture le contenu au lieu d'imprimer réellement.
+        if (PrintRecorder::isFaking()) {
+            return new CaptureConnector($config->toArray());
         }
 
         $settings = $config->settings;

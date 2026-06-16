@@ -5,6 +5,25 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+- **`Laraprint::fake()`** — capture des impressions pour les tests (`Testing\PrintRecorder`,
+  `Testing\CaptureConnector`) avec assertions `assertPrinted`, `assertPrintedContains`,
+  `assertPrintedTimes`, `assertNothingPrinted`.
+- **Tiroir-caisse & statut** — `DirectPrinter::openCashDrawer()`, `queryStatus()`,
+  value object `Support\PrinterStatus`, façade `Laraprint::openCashDrawer()` / `printerStatus()`.
+- **Suivi des jobs d'impression** — table `print_jobs`, modèle `Models\PrintJobRecord`,
+  transitions de statut dans `Jobs\PrintJob`, commande `laraprint:jobs`.
+- **Analyse statique PHPStan** (niveau 5) + baseline et job CI dédié.
+
+### Modifié
+- Les connecteurs sont désormais typés par l'interface `Mike42\Escpos\PrintConnectors\PrintConnector`
+  (au lieu d'une union de classes concrètes) — permet le connecteur de test.
+
+### Dépendances (dev)
+- Ajout de `orchestra/testbench` et `phpstan/phpstan`.
+
 ## [1.2.0] - 2026-06-16
 
 ### Ajouté

@@ -1,0 +1,199 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Connector/ConnectorFactory.php
+
+		-
+			message: '#^Dead catch \- TypeError is never thrown in the try block\.$#'
+			identifier: catch.neverThrown
+			count: 1
+			path: src/Connector/ConnectorFactory.php
+
+		-
+			message: '#^Parameter \#2 \$port of class Mike42\\Escpos\\PrintConnectors\\NetworkPrintConnector constructor expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Connector/ConnectorFactory.php
+
+		-
+			message: '#^Parameter \#3 \$timeout of class Mike42\\Escpos\\PrintConnectors\\NetworkPrintConnector constructor expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Connector/ConnectorFactory.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\PrintJobRecord\:\:\$created_at\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Console/PrintJobsCommand.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Query\\Builder\:\:status\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Console/PrintJobsCommand.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Support\\Collection\<int,stdClass\>\:\:map\(\) expects callable\(stdClass, int\)\: array\{int, string, string, string, int, string, string\}, Closure\(Neocode\\Laraprint\\Models\\PrintJobRecord\)\: array\{int, string, string, string, int, string, string\} given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/Console/PrintJobsCommand.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$connection_type\.$#'
+			identifier: property.notFound
+			count: 2
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$id\.$#'
+			identifier: property.notFound
+			count: 3
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$is_default\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 8
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Offset ''connection_type'' on array\{connection_type\: string, settings\: array\<string, mixed\>, name\: string, printer_type\?\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Offset ''name'' on array\{connection_type\: string, settings\: array\<string, mixed\>, name\: string, printer_type\?\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Offset ''settings'' on array\{connection_type\: string, settings\: array\<string, mixed\>, name\: string, printer_type\?\: string\|null\} on left side of \?\? always exists and is not nullable\.$#'
+			identifier: nullCoalesce.offset
+			count: 1
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Parameter \#1 \$callback of method Illuminate\\Database\\Eloquent\\Collection\<int,Neocode\\Laraprint\\Models\\Printer\>\:\:map\(\) contains unresolvable type\.$#'
+			identifier: argument.unresolvableType
+			count: 1
+			path: src/Console/PrintersCommand.php
+
+		-
+			message: '#^Parameter \#1 \$len of method Mike42\\Escpos\\PrintConnectors\\PrintConnector\:\:read\(\) expects string, int given\.$#'
+			identifier: argument.type
+			count: 1
+			path: src/DirectPrinter.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$connection_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/Printer.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$credentials\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/Printer.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/Printer.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/Printer.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$printer_type\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Models/Printer.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$workstation_id\.$#'
+			identifier: property.notFound
+			count: 2
+			path: src/Models/Printer.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<static\(Neocode\\Laraprint\\Models\\Workstation\)\>\:\:byIp\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Models/Workstation.php
+
+		-
+			message: '#^Method Neocode\\Laraprint\\Models\\Workstation\:\:defaultPrinter\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasOne but returns Illuminate\\Database\\Eloquent\\Builder\<Neocode\\Laraprint\\Models\\Printer\>\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Models/Workstation.php
+
+		-
+			message: '#^Method Neocode\\Laraprint\\Models\\Workstation\:\:getDefaultPrinter\(\) should return Neocode\\Laraprint\\Models\\Printer\|null but returns Illuminate\\Database\\Eloquent\\Model\|null\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Models/Workstation.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$is_active\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Printers/PrinterRegistry.php
+
+		-
+			message: '#^Access to an undefined property Neocode\\Laraprint\\Models\\Printer\:\:\$name\.$#'
+			identifier: property.notFound
+			count: 1
+			path: src/Printers/PrinterRegistry.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Neocode\\Laraprint\\Models\\Printer\>\:\:active\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Printers/PrinterRegistry.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Builder\<Neocode\\Laraprint\\Models\\Printer\>\:\:default\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: src/Printers/PrinterRegistry.php
+
+		-
+			message: '#^Call to function is_array\(\) with array will always evaluate to true\.$#'
+			identifier: function.alreadyNarrowedType
+			count: 1
+			path: src/Printing/SpooledFilePrint.php
+
+		-
+			message: '#^Method Neocode\\Laraprint\\Testing\\CaptureConnector\:\:read\(\) has invalid return type Mike42\\Escpos\\PrintConnectors\\Data\.$#'
+			identifier: class.notFound
+			count: 1
+			path: src/Testing/CaptureConnector.php
+
+		-
+			message: '#^Method Neocode\\Laraprint\\Testing\\CaptureConnector\:\:read\(\) should return Mike42\\Escpos\\PrintConnectors\\Data but returns string\.$#'
+			identifier: return.type
+			count: 1
+			path: src/Testing/CaptureConnector.php

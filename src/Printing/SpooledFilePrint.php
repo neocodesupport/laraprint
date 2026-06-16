@@ -11,6 +11,7 @@ use Neocode\Laraprint\Events\PrintJobCompleted;
 use Neocode\Laraprint\Events\PrintJobFailed;
 use Neocode\Laraprint\Events\PrintJobStarted;
 use Neocode\Laraprint\Support\Telemetry;
+use Neocode\Laraprint\Testing\PrintRecorder;
 use RuntimeException;
 
 /**
@@ -36,6 +37,13 @@ final class SpooledFilePrint
      */
     public static function submit(string $path, array $connectionConfig): void
     {
+        // Mode test : on enregistre l'intention au lieu d'appeler le spouleur.
+        if (PrintRecorder::isFaking()) {
+            PrintRecorder::instance()->record($connectionConfig, $path, 'spool.file');
+
+            return;
+        }
+
         $real = realpath($path);
         if ($real === false || ! is_file($real) || ! is_readable($real)) {
             throw new RuntimeException(sprintf('Fichier introuvable ou illisible : %s', $path));

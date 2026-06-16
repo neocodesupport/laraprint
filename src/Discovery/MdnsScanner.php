@@ -124,13 +124,14 @@ final class MdnsScanner
         $header = unpack('nid/nflags/nqd/nan/nns/nar', substr($message, 0, 12));
         $offset = 12;
 
-        for ($i = 0; $i < $header['qd']; $i++) {
+        $questions = (int) $header['qd'];
+        for ($i = 0; $i < $questions; $i++) {
             self::readName($message, $offset);
             $offset += 4; // QTYPE + QCLASS
         }
 
         $records = [];
-        $total = $header['an'] + $header['ns'] + $header['ar'];
+        $total = (int) $header['an'] + (int) $header['ns'] + (int) $header['ar'];
         for ($i = 0; $i < $total; $i++) {
             $name = self::readName($message, $offset);
             if ($offset + 10 > strlen($message)) {

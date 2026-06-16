@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Neocode\Laraprint;
 
+use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Str;
 use Neocode\Laraprint\Connector\ConnectorFactory;
 use Neocode\Laraprint\Connector\PrinterConnectionConfig;
 use Neocode\Laraprint\Discovery\LocalPrinters;
@@ -12,11 +14,14 @@ use Neocode\Laraprint\Discovery\NetworkScanner;
 use Neocode\Laraprint\Discovery\SystemPrinters;
 use Neocode\Laraprint\Jobs\PrintJob;
 use Neocode\Laraprint\Models\Printer;
+use Neocode\Laraprint\Models\PrintJobRecord;
 use Neocode\Laraprint\Models\Workstation;
 use Neocode\Laraprint\Printers\PrinterRegistry;
 use Neocode\Laraprint\Printing\SpooledFilePrint;
+use Neocode\Laraprint\Support\PrinterStatus;
 use Neocode\Laraprint\Support\PrinterType;
 use Neocode\Laraprint\Support\ReceiptConfig;
+use Neocode\Laraprint\Testing\PrintRecorder;
 use Neocode\Laraprint\Thermal\ReceiptData;
 use Neocode\Laraprint\Thermal\ThermalPrinter;
 
@@ -34,6 +39,39 @@ final class Laraprint
     public static function printer(array $connectionConfig): DirectPrinter
     {
         return DirectPrinter::forPrinter($connectionConfig);
+    }
+
+    /**
+     * Active le mode test : les impressions sont capturées au lieu d'être envoyées.
+     * Renvoie l'enregistreur pour les assertions (`assertPrinted`, `assertPrintedContains`…).
+     */
+    public static function fake(): PrintRecorder
+    {
+        return PrintRecorder::instance()->enable();
+    }
+
+    /**
+     * Ouvre le tiroir-caisse relié à l'imprimante.
+     *
+     * @param  array<string, mixed>  $connectionConfig
+     */
+    public static function openCashDrawer(array $connectionConfig, int $pin = 0): void
+    {
+        DirectPrinter::forPrinter($connectionConfig)->openCashDrawer($pin)->close();
+    }
+
+    /**
+     * Interroge l'état temps réel d'une imprimante (best-effort, réseau/périphérique).
+     *
+     * @param  array<string, mixed>  $connectionConfig
+     */
+    public static function printerStatus(array $connectionConfig): PrinterStatus
+    {
+        $printer = DirectPrinter::forPrinter($connectionConfig);
+        $status = $printer->queryStatus();
+        $printer->close();
+
+        return $status;
     }
 
     /**
@@ -146,7 +184,7 @@ final class Laraprint
      */
     public static function queueText(array $config, string $text, bool $cut = true): mixed
     {
-        return dispatch(PrintJob::text($config, $text, $cut));
+        return self::dispatchPrintJob(PrintJob::text($config, $text, $cut));
     }
 
     /**
@@ -156,7 +194,7 @@ final class Laraprint
      */
     public static function queueFile(array $config, string $path, bool $asText = false): mixed
     {
-        return dispatch(PrintJob::file($config, $path, $asText));
+        return self::dispatchPrintJob(PrintJob::file($config, $path, $asText), ['path' => $path]);
     }
 
     /**
@@ -168,7 +206,45 @@ final class Laraprint
      */
     public static function queueReceipt(array $config, array $data, ?array $receiptConfig = null): mixed
     {
-        return dispatch(PrintJob::receipt($config, $data, $receiptConfig));
+        $context = isset($data['sale_number']) ? ['sale_number' => $data['sale_number']] : [];
+
+        return self::dispatchPrintJob(PrintJob::receipt($config, $data, $receiptConfig), $context);
+    }
+
+    /**
+     * Crée une trace `print_jobs` (si la table existe) puis dispatche le job.
+     *
+     * @param  array<string, mixed>  $context
+     */
+    private static function dispatchPrintJob(PrintJob $job, array $context = []): mixed
+    {
+        $job->recordId = self::trackPrintJob($job, $context);
+
+        return dispatch($job);
+    }
+
+    /**
+     * @param  array<string, mixed>  $context
+     */
+    private static function trackPrintJob(PrintJob $job, array $context): ?int
+    {
+        try {
+            if (! Schema::hasTable('print_jobs')) {
+                return null;
+            }
+
+            $record = PrintJobRecord::query()->create([
+                'uuid' => (string) Str::uuid(),
+                'printer_id' => $job->connectionConfig['id'] ?? null,
+                'kind' => $job->kind,
+                'status' => PrintJobRecord::STATUS_QUEUED,
+                'context' => $context,
+            ]);
+
+            return (int) $record->id;
+        } catch (\Throwable) {
+            return null;
+        }
     }
 
     /**

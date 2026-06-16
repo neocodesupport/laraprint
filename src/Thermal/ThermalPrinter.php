@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Neocode\Laraprint\Thermal;
 
-use Mike42\Escpos\PrintConnectors\CupsPrintConnector;
-use Mike42\Escpos\PrintConnectors\FilePrintConnector;
-use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
-use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use Mike42\Escpos\PrintConnectors\PrintConnector;
 use Mike42\Escpos\Printer as EscposPrinter;
 use Neocode\Laraprint\Connector\ConnectorFactory;
 use Neocode\Laraprint\Events\PrintJobCompleted;
@@ -30,7 +27,7 @@ class ThermalPrinter
      * @param  array<string, mixed>  $connectionConfig
      */
     public function __construct(
-        NetworkPrintConnector|WindowsPrintConnector|CupsPrintConnector|FilePrintConnector $connector,
+        PrintConnector $connector,
         private readonly ReceiptConfig $receiptConfig,
         array $connectionConfig = [],
     ) {

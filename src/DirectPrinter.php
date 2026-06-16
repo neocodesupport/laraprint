@@ -4,10 +4,7 @@ declare(strict_types=1);
 
 namespace Neocode\Laraprint;
 
-use Mike42\Escpos\PrintConnectors\CupsPrintConnector;
-use Mike42\Escpos\PrintConnectors\FilePrintConnector;
-use Mike42\Escpos\PrintConnectors\NetworkPrintConnector;
-use Mike42\Escpos\PrintConnectors\WindowsPrintConnector;
+use Mike42\Escpos\PrintConnectors\PrintConnector;
 use Mike42\Escpos\Printer as EscposPrinter;
 use Neocode\Laraprint\Connector\ConnectorFactory;
 use Neocode\Laraprint\Connector\PrinterConnectionConfig;
@@ -15,6 +12,7 @@ use Neocode\Laraprint\Events\PrintJobCompleted;
 use Neocode\Laraprint\Events\PrintJobFailed;
 use Neocode\Laraprint\Events\PrintJobStarted;
 use Neocode\Laraprint\Printing\SpooledFilePrint;
+use Neocode\Laraprint\Support\PrinterStatus;
 use Neocode\Laraprint\Support\PrinterType;
 use Neocode\Laraprint\Support\Telemetry;
 
@@ -29,8 +27,7 @@ class DirectPrinter
 {
     private EscposPrinter $printer;
 
-    /** @var NetworkPrintConnector|WindowsPrintConnector|CupsPrintConnector|FilePrintConnector */
-    private $connector;
+    private PrintConnector $connector;
 
     private bool $closed = false;
 
@@ -50,7 +47,7 @@ class DirectPrinter
     }
 
     public function __construct(
-        NetworkPrintConnector|WindowsPrintConnector|CupsPrintConnector|FilePrintConnector $connector,
+        PrintConnector $connector,
         array $connectionConfig = [],
     ) {
         $this->connector = $connector;
@@ -213,6 +210,47 @@ class DirectPrinter
         $this->printer->cut($mode, $lines);
 
         return $this;
+    }
+
+    /**
+     * Ouvre le tiroir-caisse (impulsion ESC/POS sur la broche indiquée).
+     */
+    public function openCashDrawer(int $pin = 0, int $onMs = 120, int $offMs = 240): self
+    {
+        $this->ensureOpen();
+        $this->printer->pulse($pin, $onMs, $offMs);
+
+        return $this;
+    }
+
+    /**
+     * Interroge l'état temps réel de l'imprimante (DLE EOT 1..4).
+     *
+     * Best-effort : nécessite un connecteur capable de lire (réseau, fichier périphérique).
+     * Les champs inconnus valent `null`.
+     */
+    public function queryStatus(): PrinterStatus
+    {
+        $this->ensureOpen();
+
+        return PrinterStatus::decode(
+            $this->realtimeStatus(1),
+            $this->realtimeStatus(2),
+            $this->realtimeStatus(3),
+            $this->realtimeStatus(4),
+        );
+    }
+
+    private function realtimeStatus(int $n): ?int
+    {
+        $this->connector->write("\x10\x04".chr($n));
+        $response = $this->connector->read(1);
+
+        if (! is_string($response) || $response === '') {
+            return null;
+        }
+
+        return ord($response[0]);
     }
 
     /**

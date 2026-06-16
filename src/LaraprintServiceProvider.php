@@ -6,6 +6,7 @@ namespace Neocode\Laraprint;
 
 use Illuminate\Support\ServiceProvider;
 use Neocode\Laraprint\Console\PrintersCommand;
+use Neocode\Laraprint\Console\PrintJobsCommand;
 use Neocode\Laraprint\Printers\PrinterRegistry;
 
 class LaraprintServiceProvider extends ServiceProvider
@@ -33,6 +34,7 @@ class LaraprintServiceProvider extends ServiceProvider
 
             $this->commands([
                 PrintersCommand::class,
+                PrintJobsCommand::class,
             ]);
         }
     }

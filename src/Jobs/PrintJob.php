@@ -9,10 +9,13 @@ use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
 use Illuminate\Queue\InteractsWithQueue;
 use Illuminate\Queue\SerializesModels;
+use Illuminate\Support\Facades\Schema;
 use InvalidArgumentException;
 use Neocode\Laraprint\DirectPrinter;
 use Neocode\Laraprint\Laraprint;
+use Neocode\Laraprint\Models\PrintJobRecord;
 use Neocode\Laraprint\Thermal\ThermalPrinter;
+use Throwable;
 
 /**
  * Job d'impression **asynchrone** (file d'attente Laravel).
@@ -45,6 +48,9 @@ class PrintJob implements ShouldQueue
      * @param  string|array<string, mixed>|null  $payload
      * @param  array<string, mixed>|null  $receiptConfig
      */
+    /** Identifiant de la trace `print_jobs` (suivi optionnel). */
+    public ?int $recordId = null;
+
     public function __construct(
         public array $connectionConfig,
         public string $kind,
@@ -90,18 +96,45 @@ class PrintJob implements ShouldQueue
 
     public function handle(): void
     {
-        match ($this->kind) {
-            'text' => $this->handleText(),
-            'raw' => DirectPrinter::forPrinter($this->connectionConfig)
-                ->printRaw((string) $this->payload)
-                ->close(),
-            'file' => Laraprint::printFile((string) $this->payload, $this->connectionConfig, $this->asText),
-            'receipt' => ThermalPrinter::fromConnectionConfig(
-                $this->connectionConfig,
-                $this->receiptConfig ?? [],
-            )->printReceipt((array) $this->payload),
-            default => throw new InvalidArgumentException("Type d'impression inconnu : {$this->kind}"),
-        };
+        $record = $this->trackingRecord();
+        $record?->markPrinting();
+
+        try {
+            match ($this->kind) {
+                'text' => $this->handleText(),
+                'raw' => DirectPrinter::forPrinter($this->connectionConfig)
+                    ->printRaw((string) $this->payload)
+                    ->close(),
+                'file' => Laraprint::printFile((string) $this->payload, $this->connectionConfig, $this->asText),
+                'receipt' => ThermalPrinter::fromConnectionConfig(
+                    $this->connectionConfig,
+                    $this->receiptConfig ?? [],
+                )->printReceipt((array) $this->payload),
+                default => throw new InvalidArgumentException("Type d'impression inconnu : {$this->kind}"),
+            };
+
+            $record?->markCompleted();
+        } catch (Throwable $e) {
+            $record?->markFailed($e->getMessage());
+            throw $e;
+        }
+    }
+
+    private function trackingRecord(): ?PrintJobRecord
+    {
+        if ($this->recordId === null) {
+            return null;
+        }
+
+        try {
+            if (! Schema::hasTable('print_jobs')) {
+                return null;
+            }
+
+            return PrintJobRecord::query()->find($this->recordId);
+        } catch (Throwable) {
+            return null;
+        }
     }
 
     private function handleText(): void
