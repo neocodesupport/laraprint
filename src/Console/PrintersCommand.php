@@ -6,6 +6,7 @@ namespace Neocode\Laraprint\Console;
 
 use Illuminate\Console\Command;
 use Neocode\Laraprint\Discovery\LocalPrinters;
+use Neocode\Laraprint\Discovery\MdnsScanner;
 use Neocode\Laraprint\Discovery\NetworkScanner;
 use Neocode\Laraprint\Discovery\SystemPrinters;
 use Neocode\Laraprint\Models\Printer;
@@ -39,6 +40,7 @@ class PrintersCommand extends Command
         {--machine : Cible/définit le défaut pour la machine courante (default)}
         {--usb : Découverte des imprimantes USB locales (import|scan)}
         {--network : Découverte des imprimantes réseau (import|scan)}
+        {--mdns : Découverte mDNS / Bonjour AirPrint (import|scan)}
         {--range= : Plage réseau à scanner, ex. 192.168.1.0/24 (import|scan)}';
 
     /** @var string */
@@ -152,10 +154,11 @@ class PrintersCommand extends Command
     {
         $usb = (bool) $this->option('usb');
         $network = (bool) $this->option('network');
+        $mdns = (bool) $this->option('mdns');
         $range = $this->option('range') ?: null;
 
         // Par défaut (aucun drapeau) : imprimantes du système.
-        $system = ! $usb && ! $network;
+        $system = ! $usb && ! $network && ! $mdns;
 
         $added = collect();
         if ($system) {
@@ -168,6 +171,10 @@ class PrintersCommand extends Command
         if ($network) {
             $this->line('Scan du réseau'.($range ? " ({$range})" : ' local').'…');
             $added = $added->merge($registry->importNetworkPrinters($range));
+        }
+        if ($mdns) {
+            $this->line('Découverte mDNS / Bonjour…');
+            $added = $added->merge($registry->importAirPrintPrinters());
         }
 
         if ($added->isEmpty()) {
@@ -188,16 +195,21 @@ class PrintersCommand extends Command
     {
         $usb = (bool) $this->option('usb');
         $network = (bool) $this->option('network');
+        $mdns = (bool) $this->option('mdns');
         $range = $this->option('range') ?: null;
 
-        // Par défaut : système + USB. Réseau seulement si demandé (plus lent).
+        // Par défaut : système + USB. Réseau / mDNS seulement si demandés (plus lents).
         $configs = [];
-        if (! $network || $usb) {
+        if ((! $network && ! $mdns) || $usb) {
             $configs = array_merge(SystemPrinters::listPrinters(), LocalPrinters::listUsb());
         }
         if ($network) {
             $this->line('Scan du réseau'.($range ? " ({$range})" : ' local').'…');
             $configs = array_merge($configs, (new NetworkScanner)->scan($range));
+        }
+        if ($mdns) {
+            $this->line('Découverte mDNS / Bonjour…');
+            $configs = array_merge($configs, (new MdnsScanner)->discover());
         }
 
         if ($configs === []) {

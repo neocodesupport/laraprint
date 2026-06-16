@@ -7,8 +7,10 @@ namespace Neocode\Laraprint;
 use Neocode\Laraprint\Connector\ConnectorFactory;
 use Neocode\Laraprint\Connector\PrinterConnectionConfig;
 use Neocode\Laraprint\Discovery\LocalPrinters;
+use Neocode\Laraprint\Discovery\MdnsScanner;
 use Neocode\Laraprint\Discovery\NetworkScanner;
 use Neocode\Laraprint\Discovery\SystemPrinters;
+use Neocode\Laraprint\Jobs\PrintJob;
 use Neocode\Laraprint\Models\Printer;
 use Neocode\Laraprint\Models\Workstation;
 use Neocode\Laraprint\Printers\PrinterRegistry;
@@ -113,17 +115,60 @@ final class Laraprint
     }
 
     /**
-     * Découverte combinée : imprimantes du système + USB locales (+ réseau si demandé).
+     * Découverte mDNS / Bonjour (AirPrint) des imprimantes du réseau local.
+     *
+     * @return list<array{connection_type: string, settings: array<string, mixed>, name: string, printer_type: ?string}>
+     */
+    public static function discoverAirPrint(float $timeout = 2.0): array
+    {
+        return (new MdnsScanner)->discover($timeout);
+    }
+
+    /**
+     * Découverte combinée : imprimantes du système + USB locales (+ réseau / + AirPrint si demandé).
      *
      * @return list<array{connection_type: string, settings: array<string, mixed>, name: string, printer_type?: string}>
      */
-    public static function discoverPrinters(bool $network = false, ?string $range = null): array
+    public static function discoverPrinters(bool $network = false, ?string $range = null, bool $airprint = false): array
     {
         return array_merge(
             SystemPrinters::listPrinters(),
             LocalPrinters::listUsb(),
             $network ? (new NetworkScanner)->scan($range) : [],
+            $airprint ? (new MdnsScanner)->discover() : [],
         );
+    }
+
+    /**
+     * Met en file d'attente une impression de texte.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    public static function queueText(array $config, string $text, bool $cut = true): mixed
+    {
+        return dispatch(PrintJob::text($config, $text, $cut));
+    }
+
+    /**
+     * Met en file d'attente l'impression d'un fichier.
+     *
+     * @param  array<string, mixed>  $config
+     */
+    public static function queueFile(array $config, string $path, bool $asText = false): mixed
+    {
+        return dispatch(PrintJob::file($config, $path, $asText));
+    }
+
+    /**
+     * Met en file d'attente l'impression d'un ticket de caisse.
+     *
+     * @param  array<string, mixed>  $config
+     * @param  array<string, mixed>  $data
+     * @param  array<string, mixed>|null  $receiptConfig
+     */
+    public static function queueReceipt(array $config, array $data, ?array $receiptConfig = null): mixed
+    {
+        return dispatch(PrintJob::receipt($config, $data, $receiptConfig));
     }
 
     /**

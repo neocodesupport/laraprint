@@ -8,6 +8,7 @@ use Illuminate\Database\Eloquent\Collection;
 use InvalidArgumentException;
 use Neocode\Laraprint\DirectPrinter;
 use Neocode\Laraprint\Discovery\LocalPrinters;
+use Neocode\Laraprint\Discovery\MdnsScanner;
 use Neocode\Laraprint\Discovery\NetworkScanner;
 use Neocode\Laraprint\Discovery\SystemPrinters;
 use Neocode\Laraprint\Models\Printer;
@@ -165,6 +166,16 @@ final class PrinterRegistry
         float $timeout = 0.3,
     ): Collection {
         return $this->importConfigs((new NetworkScanner)->scan($range, $ports, $timeout), $workstationId);
+    }
+
+    /**
+     * Découvre les imprimantes via mDNS / Bonjour (AirPrint) et enregistre les nouvelles.
+     *
+     * @return Collection<int, Printer>
+     */
+    public function importAirPrintPrinters(?int $workstationId = null, float $timeout = 2.0): Collection
+    {
+        return $this->importConfigs((new MdnsScanner)->discover($timeout), $workstationId);
     }
 
     /**

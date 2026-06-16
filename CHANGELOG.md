@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+- **Découverte mDNS / Bonjour (AirPrint)** (`Discovery\MdnsScanner`) : requête multicast des
+  services `_pdl-datastream._tcp` / `_printer._tcp` / `_ipp._tcp` et corrélation PTR/SRV/A.
+  Façade `Laraprint::discoverAirPrint()`, `PrinterRegistry::importAirPrintPrinters()`,
+  option CLI `--mdns`.
+- **Impression asynchrone** via job en file (`Jobs\PrintJob`) : `text`, `raw`, `file`, `receipt`,
+  3 tentatives avec backoff. Façade `Laraprint::queueText()`, `queueFile()`, `queueReceipt()`.
+- `discoverPrinters()` accepte désormais l'option `airprint`.
+
+### Dépendances
+- Ajout de `illuminate/bus` et `illuminate/queue` (jobs en file).
+
 ## [1.1.0] - 2026-06-16
 
 ### Ajouté

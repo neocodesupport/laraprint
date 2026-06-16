@@ -514,16 +514,29 @@ Les plages acceptent le **CIDR** (`192.168.1.0/24`), un **intervalle** (`192.168
 bloquantes) : un `/24` se scanne en quelques secondes. Les plages de plus de 4096 adresses sont
 refusées pour éviter les scans massifs accidentels.
 
+### Découverte AirPrint (mDNS / Bonjour)
+
+Détecte les imprimantes annoncées sur le réseau local via mDNS (AirPrint) :
+
+```php
+$airprint = Laraprint::discoverAirPrint(timeout: 2.0);
+// Interroge _pdl-datastream._tcp (9100), _printer._tcp (LPD), _ipp._tcp et corrèle
+// les enregistrements PTR/SRV/A en configurations prêtes à l'emploi.
+```
+
+> Nécessite l'extension PHP `sockets`. Sans elle (ou sans réponse), renvoie `[]`.
+
 ### Découverte combinée & import
 
 ```php
-$all = Laraprint::discoverPrinters(network: true);   // système + USB + réseau
+$all = Laraprint::discoverPrinters(network: true, airprint: true);   // système + USB + réseau + AirPrint
 
 // Enregistre les imprimantes nouvellement découvertes (dédupliquées par nom)
 $registry = Laraprint::printers();
 $registry->importSystemPrinters();
 $registry->importUsbPrinters();
 $registry->importNetworkPrinters('192.168.1.0/24');
+$registry->importAirPrintPrinters();
 ```
 
 Depuis la CLI :
@@ -531,8 +544,10 @@ Depuis la CLI :
 ```bash
 php artisan laraprint:printers scan                 # affiche les imprimantes système + USB
 php artisan laraprint:printers scan --network       # scanne aussi le réseau local
+php artisan laraprint:printers scan --mdns          # découvre aussi les imprimantes AirPrint
 php artisan laraprint:printers import --usb         # enregistre les imprimantes USB
 php artisan laraprint:printers import --network --range=192.168.1.0/24
+php artisan laraprint:printers import --mdns        # enregistre les imprimantes AirPrint
 ```
 
 ---
@@ -729,7 +744,11 @@ Laraprint::printer($config)->printTextAndClose("OK\n");
 | `listLocalPrinters()` | `array` | Imprimantes du poste (OS). |
 | `listUsbPrinters()` | `array` | Imprimantes USB / locales. |
 | `scanNetworkPrinters(?string $range, array $ports, float $timeout)` | `array` | Scan réseau d'imprimantes. |
-| `discoverPrinters(bool $network = false, ?string $range = null)` | `array` | Système + USB (+ réseau). |
+| `discoverAirPrint(float $timeout = 2.0)` | `array` | Découverte mDNS / Bonjour (AirPrint). |
+| `discoverPrinters(bool $network, ?string $range, bool $airprint)` | `array` | Système + USB (+ réseau + AirPrint). |
+| `queueText(array $config, string $text, bool $cut = true)` | dispatch | Met en file une impression texte. |
+| `queueFile(array $config, string $path, bool $asText = false)` | dispatch | Met en file une impression fichier. |
+| `queueReceipt(array $config, array $data, ?array $receiptConfig = null)` | dispatch | Met en file un ticket. |
 | `spoolFile(string $path, array $config)` | `void` | Dépôt via spouleur OS. |
 | `printFile(string $path, array $config, bool $asText = false, ?PrinterType $type = null)` | `void` | Impression fichier (stratégie auto). |
 | `printers()` | `PrinterRegistry` | Registre des imprimantes en base. |
@@ -761,6 +780,32 @@ $size->getLabel();          // "58mm (Ticket thermique standard)"
 Cas disponibles : `Size40mm`, `Size44mm`, `Size48mm`, `Size58mm`, `Size76mm`, `Size80mm`, `A4`, `A5`, `Letter`.
 
 ---
+
+## Impression asynchrone (file d'attente)
+
+Imprimez **en arrière-plan** via un job en file Laravel — la requête HTTP reste rapide et
+le job **réessaie** automatiquement si l'imprimante est momentanément indisponible
+(`$tries = 3`, `$backoff = 5`).
+
+```php
+use Neocode\Laraprint\Jobs\PrintJob;
+
+// Raccourcis sur la façade (renvoient le PendingDispatch)
+Laraprint::queueText($config, "Ticket\n");
+Laraprint::queueFile($config, storage_path('app/tickets/job.bin'));
+Laraprint::queueReceipt($config, $receiptData, config('laraprint.receipt'));
+
+// Ou en dispatchant le job directement, avec contrôle complet de la file
+dispatch(PrintJob::receipt($config, $receiptData, config('laraprint.receipt')))
+    ->onQueue('printing')
+    ->onConnection('redis');
+
+PrintJob::text($config, "Bonjour\n")->onQueue('printing'); // également dispatchable
+```
+
+`$config` est une config de connexion (ex. via `Laraprint::printers()->connectionConfig($id)`).
+En cas d'échec, l'événement `PrintJobFailed` est émis et journalisé. Lancez un worker :
+`php artisan queue:work`.
 
 ## Événements & logs
 
@@ -924,8 +969,9 @@ vendor/bin/pint --test   # vérifie sans modifier
 | `Neocode\Laraprint\Laraprint` | Façade / point d'entrée principal. |
 | `…\DirectPrinter` | Impression directe (texte, brut, ESC/POS, fichier). |
 | `…\Connector\*` | `ConnectorFactory`, `PrinterConnectionConfig` — création des connecteurs. |
-| `…\Discovery\*` | `SystemPrinters` (files OS), `LocalPrinters` (USB), `NetworkScanner` (scan réseau). |
+| `…\Discovery\*` | `SystemPrinters` (files OS), `LocalPrinters` (USB), `NetworkScanner` (réseau), `MdnsScanner` (AirPrint). |
 | `…\Console\PrintersCommand` | Commande Artisan `laraprint:printers`. |
+| `…\Jobs\PrintJob` | Job d'impression asynchrone (file d'attente). |
 | `…\Printing\SpooledFilePrint` | Dépôt de fichiers via le spouleur OS. |
 | `…\Thermal\*` | `ThermalPrinter`, `ReceiptData` — tickets de caisse. |
 | `…\Printers\*` | `PrinterRegistry`, `CurrentWorkstation` — gestion & défaut machine/session. |
