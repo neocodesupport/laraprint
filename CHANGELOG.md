@@ -5,6 +5,19 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+- **Builder de ticket fluide** (`Thermal\ReceiptBuilder`, `Laraprint::build()`) :
+  alignement, gras, taille, code-barres, QR, logo/image, tiroir, coupe.
+- **Étiquettes ZPL / Zebra** (`Label\ZplBuilder`) : texte, code-barres, QR, cadres,
+  envoi en octets bruts. `Laraprint::sendRaw()` (octets bruts sans init ESC/POS).
+- **Client IPP** (`Printing\IppClient`, `Laraprint::printIpp()`) : impression réelle sur
+  imprimantes IPP / AirPrint (port 631).
+- **Requête SNMP** (`Discovery\SnmpQuery`, `Laraprint::snmp()`) : modèle, statut, compteur
+  de pages, niveau de consommable (Printer MIB).
+- **Alias global `\Laraprint`** (extra.laravel.aliases) — `\Laraprint::printer(...)` partout.
+
 ## [1.2.1] - 2026-06-16
 
 ### Ajouté

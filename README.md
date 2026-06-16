@@ -76,6 +76,7 @@ The `LaraprintServiceProvider` is **registered automatically** (package auto-dis
 
 - merges the default configuration (`config('laraprint')`);
 - registers the `PrinterRegistry` singleton in the container;
+- registers the global **`\Laraprint`** alias (so `\Laraprint::printer(...)` works anywhere);
 - exposes the publishing tags.
 
 ### Publish the configuration
@@ -481,6 +482,48 @@ $printer = ThermalPrinter::fromConnectionConfig($config, $cfg);
 
 ---
 
+## Receipt builder (fluent)
+
+Compose a receipt without dropping to the raw ESC/POS API:
+
+```php
+Laraprint::build($config)
+    ->center()->bold()->size(2, 2)->line('MY SHOP')->bold(false)->size(1, 1)
+    ->rule()
+    ->left()->line('Item A           1 000')
+    ->rule()
+    ->qr('https://example.com/receipt/42')
+    ->image(public_path('logo.png'))   // optional
+    ->feed(2)->cut()
+    ->print();
+```
+
+Methods: `left/center/right`, `bold`, `underline`, `size`, `text`, `line`, `rule`, `feed`,
+`barcode`, `qr`, `image`, `drawer`, `cut`, `print`, and `escpos()` for full control.
+
+## Labels (ZPL / Zebra)
+
+Generate and send **ZPL** labels to Zebra printers (raw bytes, no ESC/POS init):
+
+```php
+use Neocode\Laraprint\Label\ZplBuilder;
+
+ZplBuilder::make()
+    ->box(20, 20, 760, 380, 3)
+    ->text(50, 50, 'Product A', size: 40)
+    ->barcode(50, 140, '123456789')
+    ->qr(560, 50, 'https://example.com')
+    ->print($config);                 // network 9100 or device
+
+$zpl = ZplBuilder::make()->text(0, 0, 'Hi')->toZpl();   // raw ZPL string
+```
+
+For any non-ESC/POS protocol, send raw bytes directly:
+
+```php
+Laraprint::sendRaw($config, $rawBytes);   // no ESC/POS initialization is prepended
+```
+
 ## Discovering machine printers
 
 Lists the printers **installed on the machine** where the application runs.
@@ -543,6 +586,29 @@ $airprint = Laraprint::discoverAirPrint(timeout: 2.0);
 ```
 
 > Requires the PHP `sockets` extension. Without it (or with no response), returns `[]`.
+
+### Printer info via SNMP
+
+Query a network printer's model, status, page count and supply levels (Printer MIB):
+
+```php
+$info = Laraprint::snmp('192.168.1.50');           // community 'public' by default
+// ['model' => 'EPSON…', 'status' => '3', 'page_count' => '10421',
+//  'supply_level' => '80', 'supply_max' => '100', 'supply_percent' => 80]
+```
+
+> Requires the PHP `snmp` extension. Without it, returns `[]`.
+
+### IPP / AirPrint printing
+
+Print a document over IPP (port 631) — for real AirPrint/IPP printers, beyond raw 9100:
+
+```php
+$pdf = file_get_contents(storage_path('app/invoice.pdf'));
+
+Laraprint::printIpp('ipp://192.168.1.50:631/ipp/print', $pdf, 'application/pdf');
+// returns true on a "successful" IPP status
+```
 
 ### Combined discovery & import
 
@@ -754,9 +820,13 @@ Laraprint::printer($config)->printTextAndClose("OK\n");
 | Method | Returns | Purpose |
 | --- | --- | --- |
 | `printer(array $config)` | `DirectPrinter` | Direct printing. |
+| `build(array $config)` | `ReceiptBuilder` | Fluent receipt builder. |
+| `sendRaw(array $config, string $data)` | `void` | Send raw bytes (no ESC/POS init). |
 | `fake()` | `PrintRecorder` | Capture prints for testing. |
 | `openCashDrawer(array $config, int $pin = 0)` | `void` | Open the cash drawer. |
 | `printerStatus(array $config)` | `PrinterStatus` | Query real-time status. |
+| `snmp(string $host, string $community = 'public')` | `array` | Printer info via SNMP. |
+| `printIpp(string $uri, string $data, string $format)` | `bool` | Print over IPP / AirPrint. |
 | `thermalPrinter(array $config, array\|ReceiptConfig $receipt)` | `ThermalPrinter` | Cash receipt. |
 | `connector(array $config)` | ESC/POS connector | Low-level connector. |
 | `connectionConfig(array $data)` | `PrinterConnectionConfig` | Connection DTO. |
@@ -1022,7 +1092,10 @@ $printer->assertNothingPrinted();
 | `Neocode\Laraprint\Laraprint` | Facade / main entry point. |
 | `…\DirectPrinter` | Direct printing (text, raw, ESC/POS, file). |
 | `…\Connector\*` | `ConnectorFactory`, `PrinterConnectionConfig` — connector creation. |
-| `…\Discovery\*` | `SystemPrinters` (OS queues), `LocalPrinters` (USB), `NetworkScanner` (network), `MdnsScanner` (AirPrint). |
+| `…\Discovery\*` | `SystemPrinters` (OS), `LocalPrinters` (USB), `NetworkScanner` (network), `MdnsScanner` (AirPrint), `SnmpQuery` (SNMP). |
+| `…\Printing\*` | `SpooledFilePrint` (OS spooler), `IppClient` (IPP). |
+| `…\Label\ZplBuilder` | ZPL (Zebra) label builder. |
+| `…\Thermal\ReceiptBuilder` | Fluent receipt builder. |
 | `…\Console\*` | `PrintersCommand` (`laraprint:printers`), `PrintJobsCommand` (`laraprint:jobs`). |
 | `…\Jobs\PrintJob` | Queued (asynchronous) print job. |
 | `…\Printing\SpooledFilePrint` | File submission via the OS spooler. |

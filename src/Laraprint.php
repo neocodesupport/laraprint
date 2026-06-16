@@ -11,17 +11,20 @@ use Neocode\Laraprint\Connector\PrinterConnectionConfig;
 use Neocode\Laraprint\Discovery\LocalPrinters;
 use Neocode\Laraprint\Discovery\MdnsScanner;
 use Neocode\Laraprint\Discovery\NetworkScanner;
+use Neocode\Laraprint\Discovery\SnmpQuery;
 use Neocode\Laraprint\Discovery\SystemPrinters;
 use Neocode\Laraprint\Jobs\PrintJob;
 use Neocode\Laraprint\Models\Printer;
 use Neocode\Laraprint\Models\PrintJobRecord;
 use Neocode\Laraprint\Models\Workstation;
 use Neocode\Laraprint\Printers\PrinterRegistry;
+use Neocode\Laraprint\Printing\IppClient;
 use Neocode\Laraprint\Printing\SpooledFilePrint;
 use Neocode\Laraprint\Support\PrinterStatus;
 use Neocode\Laraprint\Support\PrinterType;
 use Neocode\Laraprint\Support\ReceiptConfig;
 use Neocode\Laraprint\Testing\PrintRecorder;
+use Neocode\Laraprint\Thermal\ReceiptBuilder;
 use Neocode\Laraprint\Thermal\ReceiptData;
 use Neocode\Laraprint\Thermal\ThermalPrinter;
 
@@ -39,6 +42,29 @@ final class Laraprint
     public static function printer(array $connectionConfig): DirectPrinter
     {
         return DirectPrinter::forPrinter($connectionConfig);
+    }
+
+    /**
+     * Builder fluide de ticket (logo, code-barres, QR, alignement…).
+     *
+     * @param  array<string, mixed>  $connectionConfig
+     */
+    public static function build(array $connectionConfig): ReceiptBuilder
+    {
+        return ReceiptBuilder::make($connectionConfig);
+    }
+
+    /**
+     * Envoie des octets bruts à l'imprimante **sans** initialisation ESC/POS.
+     * Utile pour les protocoles non-ESC/POS (ex. ZPL/EPL Zebra).
+     *
+     * @param  array<string, mixed>  $connectionConfig
+     */
+    public static function sendRaw(array $connectionConfig, string $data): void
+    {
+        $connector = ConnectorFactory::fromArray($connectionConfig);
+        $connector->write($data);
+        $connector->finalize();
     }
 
     /**
@@ -160,6 +186,26 @@ final class Laraprint
     public static function discoverAirPrint(float $timeout = 2.0): array
     {
         return (new MdnsScanner)->discover($timeout);
+    }
+
+    /**
+     * Interroge une imprimante réseau via SNMP (modèle, statut, compteur, consommables).
+     *
+     * @return array<string, int|string|null>
+     */
+    public static function snmp(string $host, string $community = 'public', float $timeout = 1.0): array
+    {
+        return (new SnmpQuery)->query($host, $community, $timeout);
+    }
+
+    /**
+     * Imprime un document via IPP (imprimantes AirPrint / IPP, port 631).
+     *
+     * @param  string  $uri  Ex. `ipp://192.168.1.50:631/ipp/print`.
+     */
+    public static function printIpp(string $uri, string $data, string $documentFormat = 'application/octet-stream'): bool
+    {
+        return (new IppClient)->printJob($uri, $data, $documentFormat);
     }
 
     /**
