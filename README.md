@@ -486,6 +486,54 @@ foreach ($printers as $cfg) {
 - **Linux/macOS**: via CUPS `lpstat -a` (falls back to `lpstat -p`).
 - The `printer_type` is **guessed** from the name (heuristic: `receipt`, `pos`, `ticket`, `TM…` → thermal).
 
+### USB / locally-attached discovery
+
+Detect printers physically connected to the machine:
+
+```php
+$usb = Laraprint::listUsbPrinters();
+// Windows: printers on USB*/DOT4* ports (windows connector)
+// Linux/macOS: /dev/usb/lp*, /dev/lp* (file connector) + CUPS usb:// devices
+```
+
+### Network discovery (scan)
+
+Probe the local network for printers listening on a print port (9100 by default):
+
+```php
+// Auto-detect the local /24 and scan port 9100
+$found = Laraprint::scanNetworkPrinters();
+
+// Explicit range and ports
+$found = Laraprint::scanNetworkPrinters('192.168.1.0/24', ports: [9100, 515], timeout: 0.3);
+$found = Laraprint::scanNetworkPrinters('192.168.1.10-50');
+```
+
+Ranges accept **CIDR** (`192.168.1.0/24`), **intervals** (`192.168.1.10-50` or full `…-192.168.1.50`),
+or a **single IP**. Connections run in parallel (non-blocking sockets), so a `/24` scans in seconds.
+Ranges larger than 4096 addresses are rejected to avoid accidental massive scans.
+
+### Combined discovery & import
+
+```php
+$all = Laraprint::discoverPrinters(network: true);   // system + USB + network
+
+// Persist newly discovered printers (deduplicated by name)
+$registry = Laraprint::printers();
+$registry->importSystemPrinters();
+$registry->importUsbPrinters();
+$registry->importNetworkPrinters('192.168.1.0/24');
+```
+
+From the CLI:
+
+```bash
+php artisan laraprint:printers scan                 # show system + USB printers
+php artisan laraprint:printers scan --network       # also scan the local network
+php artisan laraprint:printers import --usb         # persist USB printers
+php artisan laraprint:printers import --network --range=192.168.1.0/24
+```
+
 ---
 
 ## Printer management (`PrinterRegistry`)
@@ -678,6 +726,9 @@ Laraprint::printer($config)->printTextAndClose("OK\n");
 | `receiptConfig(array $data)` | `ReceiptConfig` | Receipt config DTO. |
 | `receiptData(array $data)` | `ReceiptData` | Receipt data DTO. |
 | `listLocalPrinters()` | `array` | Machine printers (OS). |
+| `listUsbPrinters()` | `array` | USB / locally-attached printers. |
+| `scanNetworkPrinters(?string $range, array $ports, float $timeout)` | `array` | Network printer scan. |
+| `discoverPrinters(bool $network = false, ?string $range = null)` | `array` | System + USB (+ network). |
 | `spoolFile(string $path, array $config)` | `void` | Submit via OS spooler. |
 | `printFile(string $path, array $config, bool $asText = false, ?PrinterType $type = null)` | `void` | File printing (auto strategy). |
 | `printers()` | `PrinterRegistry` | Database printer registry. |
@@ -872,7 +923,8 @@ vendor/bin/pint --test   # check without modifying
 | `Neocode\Laraprint\Laraprint` | Facade / main entry point. |
 | `…\DirectPrinter` | Direct printing (text, raw, ESC/POS, file). |
 | `…\Connector\*` | `ConnectorFactory`, `PrinterConnectionConfig` — connector creation. |
-| `…\Discovery\SystemPrinters` | Machine printer listing (Windows / CUPS). |
+| `…\Discovery\*` | `SystemPrinters` (OS queues), `LocalPrinters` (USB), `NetworkScanner` (network scan). |
+| `…\Console\PrintersCommand` | `laraprint:printers` Artisan command. |
 | `…\Printing\SpooledFilePrint` | File submission via the OS spooler. |
 | `…\Thermal\*` | `ThermalPrinter`, `ReceiptData` — cash receipts. |
 | `…\Printers\*` | `PrinterRegistry`, `CurrentWorkstation` — management & machine/session default. |

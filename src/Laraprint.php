@@ -6,6 +6,8 @@ namespace Neocode\Laraprint;
 
 use Neocode\Laraprint\Connector\ConnectorFactory;
 use Neocode\Laraprint\Connector\PrinterConnectionConfig;
+use Neocode\Laraprint\Discovery\LocalPrinters;
+use Neocode\Laraprint\Discovery\NetworkScanner;
 use Neocode\Laraprint\Discovery\SystemPrinters;
 use Neocode\Laraprint\Models\Printer;
 use Neocode\Laraprint\Models\Workstation;
@@ -86,6 +88,42 @@ final class Laraprint
     public static function listLocalPrinters(): array
     {
         return SystemPrinters::listPrinters();
+    }
+
+    /**
+     * Découvre les imprimantes **connectées localement** (USB / port parallèle).
+     *
+     * @return list<array{connection_type: string, settings: array<string, mixed>, name: string, printer_type: string}>
+     */
+    public static function listUsbPrinters(): array
+    {
+        return LocalPrinters::listUsb();
+    }
+
+    /**
+     * Scanne le **réseau** local pour détecter des imprimantes (port 9100 par défaut).
+     *
+     * @param  string|null  $range  Plage CIDR/intervalle/IP, ou null pour le /24 local.
+     * @param  list<int>  $ports  Ports à tester.
+     * @return list<array{connection_type: string, settings: array<string, mixed>, name: string, printer_type: string}>
+     */
+    public static function scanNetworkPrinters(?string $range = null, array $ports = [9100], float $timeout = 0.3): array
+    {
+        return (new NetworkScanner)->scan($range, $ports, $timeout);
+    }
+
+    /**
+     * Découverte combinée : imprimantes du système + USB locales (+ réseau si demandé).
+     *
+     * @return list<array{connection_type: string, settings: array<string, mixed>, name: string, printer_type?: string}>
+     */
+    public static function discoverPrinters(bool $network = false, ?string $range = null): array
+    {
+        return array_merge(
+            SystemPrinters::listPrinters(),
+            LocalPrinters::listUsb(),
+            $network ? (new NetworkScanner)->scan($range) : [],
+        );
     }
 
     /**

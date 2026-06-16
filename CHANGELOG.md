@@ -5,6 +5,20 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [Non publié]
+
+### Ajouté
+- **Découverte réseau** des imprimantes (`Discovery\NetworkScanner`) : scan parallèle d'une
+  plage CIDR / intervalle / IP sur les ports d'impression (9100 par défaut), avec déduction
+  automatique du /24 local et garde-fou anti-scan massif (> 4096 adresses).
+- **Découverte locale / USB** (`Discovery\LocalPrinters`) : ports `USB*`/`DOT4*` sous Windows,
+  périphériques `/dev/usb/lp*` / `/dev/lp*` et périphériques `usb://` de CUPS sous Linux/macOS.
+- Façade : `Laraprint::scanNetworkPrinters()`, `listUsbPrinters()`, `discoverPrinters()`.
+- `PrinterRegistry::importUsbPrinters()` et `importNetworkPrinters()`.
+- Commande Artisan : action `scan` et options `--usb`, `--network`, `--range` pour `import`/`scan`.
+- **Tests « application complète »** via `orchestra/testbench` (commande Artisan, ServiceProvider).
+- Templates GitHub : rapport de bug, demande de fonctionnalité, pull request.
+
 ## [1.0.1] - 2026-06-16
 
 ### Ajouté

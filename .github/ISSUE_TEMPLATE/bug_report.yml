@@ -1,0 +1,81 @@
+name: 🐛 Rapport de bug
+description: Signaler un dysfonctionnement de Laraprint
+title: "[Bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Merci de prendre le temps de signaler ce bug. Plus votre rapport est précis,
+        plus vite il pourra être traité.
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Décrivez clairement le problème rencontré.
+      placeholder: Quand j'imprime sur…, j'obtiens…
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Étapes de reproduction
+      description: Comment reproduire le problème ?
+      placeholder: |
+        1. Configurer une imprimante avec…
+        2. Appeler Laraprint::…
+        3. Observer…
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Comportement attendu
+    validations:
+      required: true
+  - type: dropdown
+    id: connection_type
+    attributes:
+      label: Type de connexion
+      options:
+        - network
+        - windows
+        - cups
+        - smb
+        - file / usb
+        - "Autre / inconnu"
+    validations:
+      required: true
+  - type: input
+    id: php_version
+    attributes:
+      label: Version de PHP
+      placeholder: "8.3.x"
+    validations:
+      required: true
+  - type: input
+    id: laravel_version
+    attributes:
+      label: Version de Laravel
+      placeholder: "11.x / 12.x / 13.x"
+    validations:
+      required: true
+  - type: input
+    id: laraprint_version
+    attributes:
+      label: Version de Laraprint
+      placeholder: "1.0.1"
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Message d'erreur / logs
+      description: Collez le message d'erreur complet (sans secrets).
+      render: shell
+  - type: textarea
+    id: config
+    attributes:
+      label: Configuration utilisée
+      description: Le tableau de configuration de l'imprimante (masquez IP/identifiants sensibles).
+      render: php

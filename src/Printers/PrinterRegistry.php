@@ -7,6 +7,8 @@ namespace Neocode\Laraprint\Printers;
 use Illuminate\Database\Eloquent\Collection;
 use InvalidArgumentException;
 use Neocode\Laraprint\DirectPrinter;
+use Neocode\Laraprint\Discovery\LocalPrinters;
+use Neocode\Laraprint\Discovery\NetworkScanner;
 use Neocode\Laraprint\Discovery\SystemPrinters;
 use Neocode\Laraprint\Models\Printer;
 use Neocode\Laraprint\Models\Workstation;
@@ -128,17 +130,55 @@ final class PrinterRegistry
     }
 
     /**
-     * Découvre les imprimantes du système d'exploitation et enregistre celles
-     * qui ne sont pas déjà connues (par nom). Retourne les imprimantes ajoutées.
+     * Découvre les imprimantes du système d'exploitation (files configurées) et enregistre
+     * celles qui ne sont pas déjà connues (par nom). Retourne les imprimantes ajoutées.
      *
      * @return Collection<int, Printer>
      */
     public function importSystemPrinters(?int $workstationId = null): Collection
     {
+        return $this->importConfigs(SystemPrinters::listPrinters(), $workstationId);
+    }
+
+    /**
+     * Découvre les imprimantes **connectées localement** (USB / port parallèle) et enregistre
+     * celles qui ne sont pas déjà connues.
+     *
+     * @return Collection<int, Printer>
+     */
+    public function importUsbPrinters(?int $workstationId = null): Collection
+    {
+        return $this->importConfigs(LocalPrinters::listUsb(), $workstationId);
+    }
+
+    /**
+     * Scanne le **réseau** local et enregistre les imprimantes détectées non encore connues.
+     *
+     * @param  string|null  $range  Plage à scanner (CIDR/intervalle/IP), ou null pour le /24 local.
+     * @param  list<int>  $ports  Ports à tester (défaut : `[9100]`).
+     * @return Collection<int, Printer>
+     */
+    public function importNetworkPrinters(
+        ?string $range = null,
+        ?int $workstationId = null,
+        array $ports = [9100],
+        float $timeout = 0.3,
+    ): Collection {
+        return $this->importConfigs((new NetworkScanner)->scan($range, $ports, $timeout), $workstationId);
+    }
+
+    /**
+     * Enregistre les configurations découvertes qui ne sont pas déjà connues (par nom).
+     *
+     * @param  iterable<array{connection_type?: string, settings?: array<string, mixed>, name?: string, printer_type?: string}>  $configs
+     * @return Collection<int, Printer>
+     */
+    private function importConfigs(iterable $configs, ?int $workstationId): Collection
+    {
         /** @var Collection<int, Printer> $imported */
         $imported = new Collection;
 
-        foreach (SystemPrinters::listPrinters() as $config) {
+        foreach ($configs as $config) {
             $name = $config['name'] ?? null;
             if ($name === null || $name === '' || $this->findByName($name) !== null) {
                 continue;

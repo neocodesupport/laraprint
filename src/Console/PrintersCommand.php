@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Neocode\Laraprint\Console;
 
 use Illuminate\Console\Command;
+use Neocode\Laraprint\Discovery\LocalPrinters;
+use Neocode\Laraprint\Discovery\NetworkScanner;
+use Neocode\Laraprint\Discovery\SystemPrinters;
 use Neocode\Laraprint\Models\Printer;
 use Neocode\Laraprint\Printers\PrinterRegistry;
 use Throwable;
@@ -25,7 +28,7 @@ class PrintersCommand extends Command
 {
     /** @var string */
     protected $signature = 'laraprint:printers
-        {action=list : list|add|default|import|remove|test}
+        {action=list : list|add|default|import|scan|remove|test}
         {target? : id ou nom de l\'imprimante (default|remove|test)}
         {--name= : Nom de l\'imprimante (add)}
         {--type=network : Type de connexion network|windows|cups|smb|file|usb (add)}
@@ -33,7 +36,10 @@ class PrintersCommand extends Command
         {--setting=* : Paramètre clé=valeur, répétable (add), ex. --setting=ip=192.168.1.20}
         {--default : Marque l\'imprimante comme défaut (add)}
         {--inactive : Crée l\'imprimante désactivée (add)}
-        {--machine : Cible/définit le défaut pour la machine courante (default)}';
+        {--machine : Cible/définit le défaut pour la machine courante (default)}
+        {--usb : Découverte des imprimantes USB locales (import|scan)}
+        {--network : Découverte des imprimantes réseau (import|scan)}
+        {--range= : Plage réseau à scanner, ex. 192.168.1.0/24 (import|scan)}';
 
     /** @var string */
     protected $description = 'Gère les imprimantes Laraprint (liste, ajout, défaut, import, suppression, test).';
@@ -48,6 +54,7 @@ class PrintersCommand extends Command
                 'add' => $this->addPrinter($registry),
                 'default' => $this->setDefault($registry),
                 'import' => $this->importPrinters($registry),
+                'scan' => $this->scanPrinters(),
                 'remove' => $this->removePrinter($registry),
                 'test' => $this->testPrinter($registry),
                 default => $this->invalidAction($action),
@@ -87,7 +94,10 @@ class PrintersCommand extends Command
 
     private function addPrinter(PrinterRegistry $registry): int
     {
-        $name = $this->option('name') ?: $this->ask('Nom de l\'imprimante');
+        $name = $this->option('name');
+        if (($name === null || $name === '') && $this->input->isInteractive()) {
+            $name = $this->ask('Nom de l\'imprimante');
+        }
         if (! is_string($name) || $name === '') {
             $this->error('Le nom de l\'imprimante est requis.');
 
@@ -140,10 +150,28 @@ class PrintersCommand extends Command
 
     private function importPrinters(PrinterRegistry $registry): int
     {
-        $added = $registry->importSystemPrinters();
+        $usb = (bool) $this->option('usb');
+        $network = (bool) $this->option('network');
+        $range = $this->option('range') ?: null;
+
+        // Par défaut (aucun drapeau) : imprimantes du système.
+        $system = ! $usb && ! $network;
+
+        $added = collect();
+        if ($system) {
+            $added = $added->merge($registry->importSystemPrinters());
+        }
+        if ($usb) {
+            $this->line('Découverte des imprimantes USB locales…');
+            $added = $added->merge($registry->importUsbPrinters());
+        }
+        if ($network) {
+            $this->line('Scan du réseau'.($range ? " ({$range})" : ' local').'…');
+            $added = $added->merge($registry->importNetworkPrinters($range));
+        }
 
         if ($added->isEmpty()) {
-            $this->warn('Aucune nouvelle imprimante détectée sur le poste.');
+            $this->warn('Aucune nouvelle imprimante détectée.');
 
             return self::SUCCESS;
         }
@@ -152,6 +180,42 @@ class PrintersCommand extends Command
         foreach ($added as $printer) {
             $this->line("  #{$printer->id}  {$printer->name}  ({$printer->connection_type})");
         }
+
+        return self::SUCCESS;
+    }
+
+    private function scanPrinters(): int
+    {
+        $usb = (bool) $this->option('usb');
+        $network = (bool) $this->option('network');
+        $range = $this->option('range') ?: null;
+
+        // Par défaut : système + USB. Réseau seulement si demandé (plus lent).
+        $configs = [];
+        if (! $network || $usb) {
+            $configs = array_merge(SystemPrinters::listPrinters(), LocalPrinters::listUsb());
+        }
+        if ($network) {
+            $this->line('Scan du réseau'.($range ? " ({$range})" : ' local').'…');
+            $configs = array_merge($configs, (new NetworkScanner)->scan($range));
+        }
+
+        if ($configs === []) {
+            $this->warn('Aucune imprimante détectée.');
+
+            return self::SUCCESS;
+        }
+
+        $this->table(
+            ['Nom', 'Connexion', 'Type', 'Paramètres'],
+            array_map(fn (array $c) => [
+                $c['name'] ?? '—',
+                $c['connection_type'] ?? '—',
+                $c['printer_type'] ?? '—',
+                http_build_query($c['settings'] ?? [], '', ', '),
+            ], $configs),
+        );
+        $this->info('Astuce : « laraprint:printers import --usb --network » pour enregistrer ces imprimantes.');
 
         return self::SUCCESS;
     }

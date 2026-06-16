@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 🔒 Faille de sécurité
+    url: mailto:support@necode.ci
+    about: Merci de signaler les failles de sécurité en privé, pas via une issue publique.
+  - name: 💬 Question d'utilisation
+    url: https://github.com/neocodesupport/laraprint/discussions
+    about: Pour les questions générales, utilisez les Discussions.
