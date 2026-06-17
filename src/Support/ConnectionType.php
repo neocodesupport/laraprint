@@ -18,6 +18,7 @@ enum ConnectionType: string
     case Smb = 'smb';
     case Usb = 'usb';
     case File = 'file';
+    case Ipp = 'ipp';
 
     /**
      * @return list<string>

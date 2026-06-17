@@ -11,6 +11,7 @@ use Neocode\Laraprint\Discovery\LocalPrinters;
 use Neocode\Laraprint\Discovery\MdnsScanner;
 use Neocode\Laraprint\Discovery\NetworkScanner;
 use Neocode\Laraprint\Discovery\SystemPrinters;
+use Neocode\Laraprint\Events\PrinterDiscovered;
 use Neocode\Laraprint\Models\Printer;
 use Neocode\Laraprint\Models\Workstation;
 use Neocode\Laraprint\Support\ConnectionType;
@@ -140,7 +141,7 @@ final class PrinterRegistry
      */
     public function importSystemPrinters(?int $workstationId = null): Collection
     {
-        return $this->importConfigs(SystemPrinters::listPrinters(), $workstationId);
+        return $this->importConfigs(SystemPrinters::listPrinters(), $workstationId, 'system');
     }
 
     /**
@@ -151,23 +152,23 @@ final class PrinterRegistry
      */
     public function importUsbPrinters(?int $workstationId = null): Collection
     {
-        return $this->importConfigs(LocalPrinters::listUsb(), $workstationId);
+        return $this->importConfigs(LocalPrinters::listUsb(), $workstationId, 'usb');
     }
 
     /**
      * Scanne le **réseau** local et enregistre les imprimantes détectées non encore connues.
      *
-     * @param  string|null  $range  Plage à scanner (CIDR/intervalle/IP), ou null pour le /24 local.
-     * @param  list<int>  $ports  Ports à tester (défaut : `[9100]`).
+     * @param  string|null  $range  Plage à scanner (CIDR/intervalle/IP), ou null pour le(s) sous-réseau(x) local/locaux.
+     * @param  list<int>  $ports  Ports à tester (défaut : {@see NetworkScanner::DEFAULT_PORTS}).
      * @return Collection<int, Printer>
      */
     public function importNetworkPrinters(
         ?string $range = null,
         ?int $workstationId = null,
-        array $ports = [9100],
-        float $timeout = 0.3,
+        array $ports = NetworkScanner::DEFAULT_PORTS,
+        float $timeout = 1.0,
     ): Collection {
-        return $this->importConfigs((new NetworkScanner)->scan($range, $ports, $timeout), $workstationId);
+        return $this->importConfigs((new NetworkScanner)->scan($range, $ports, $timeout), $workstationId, 'network');
     }
 
     /**
@@ -177,7 +178,7 @@ final class PrinterRegistry
      */
     public function importAirPrintPrinters(?int $workstationId = null, float $timeout = 2.0): Collection
     {
-        return $this->importConfigs((new MdnsScanner)->discover($timeout), $workstationId);
+        return $this->importConfigs((new MdnsScanner)->discover($timeout), $workstationId, 'mdns');
     }
 
     /**
@@ -186,7 +187,7 @@ final class PrinterRegistry
      * @param  iterable<array{connection_type?: string, settings?: array<string, mixed>, name?: string, printer_type?: string}>  $configs
      * @return Collection<int, Printer>
      */
-    private function importConfigs(iterable $configs, ?int $workstationId): Collection
+    private function importConfigs(iterable $configs, ?int $workstationId, string $source = 'discovery'): Collection
     {
         /** @var Collection<int, Printer> $imported */
         $imported = new Collection;
@@ -197,13 +198,16 @@ final class PrinterRegistry
                 continue;
             }
 
-            $imported->push($this->register([
+            $printer = $this->register([
                 'workstation_id' => $workstationId,
                 'name' => $name,
                 'connection_type' => $config['connection_type'] ?? 'network',
                 'printer_type' => $config['printer_type'] ?? null,
                 'settings' => $config['settings'] ?? [],
-            ]));
+            ]);
+
+            event(new PrinterDiscovered($printer, $source));
+            $imported->push($printer);
         }
 
         return $imported;

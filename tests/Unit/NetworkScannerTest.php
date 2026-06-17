@@ -68,4 +68,49 @@ final class NetworkScannerTest extends TestCase
         $this->expectException(InvalidArgumentException::class);
         NetworkScanner::expandRange('10.0.0.0/8');
     }
+
+    public function test_cidr_to_network_normalises_host_to_network(): void
+    {
+        $this->assertSame('192.168.1.0/24', NetworkScanner::cidrToNetwork('192.168.1.10/24'));
+        $this->assertSame('10.10.0.0/16', NetworkScanner::cidrToNetwork('10.10.4.7/16'));
+        $this->assertSame('172.16.0.0/12', NetworkScanner::cidrToNetwork('172.16.5.9/12'));
+    }
+
+    public function test_cidr_to_network_rejects_garbage(): void
+    {
+        $this->assertNull(NetworkScanner::cidrToNetwork('not-an-ip/24'));
+        $this->assertNull(NetworkScanner::cidrToNetwork('192.168.1.10'));
+        $this->assertNull(NetworkScanner::cidrToNetwork('192.168.1.10/40'));
+    }
+
+    public function test_parse_windows_addresses_keeps_local_drops_loopback_and_apipa(): void
+    {
+        $output = "127.0.0.1/8\r\n192.168.1.10/24\r\n169.254.20.5/16\r\n10.0.0.5/8\r\n";
+
+        $this->assertSame(
+            ['192.168.1.10/24', '10.0.0.5/8'],
+            NetworkScanner::parseWindowsAddresses($output),
+        );
+    }
+
+    public function test_parse_ip_addr_extracts_inet_cidrs(): void
+    {
+        $output = <<<'TXT'
+        1: lo    inet 127.0.0.1/8 scope host lo
+        2: eth0    inet 192.168.1.10/24 brd 192.168.1.255 scope global eth0
+        3: wlan0    inet 10.10.4.7/16 brd 10.10.255.255 scope global wlan0
+        TXT;
+
+        $this->assertSame(
+            ['192.168.1.10/24', '10.10.4.7/16'],
+            NetworkScanner::parseIpAddr($output),
+        );
+    }
+
+    public function test_printer_type_for_port(): void
+    {
+        $this->assertSame('thermal_escpos_raw', NetworkScanner::printerTypeForPort(9100));
+        $this->assertNull(NetworkScanner::printerTypeForPort(631));
+        $this->assertNull(NetworkScanner::printerTypeForPort(515));
+    }
 }

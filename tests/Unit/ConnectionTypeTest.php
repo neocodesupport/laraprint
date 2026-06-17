@@ -13,7 +13,7 @@ final class ConnectionTypeTest extends TestCase
     public function test_values_cover_all_supported_types(): void
     {
         $this->assertSame(
-            ['network', 'windows', 'cups', 'smb', 'usb', 'file'],
+            ['network', 'windows', 'cups', 'smb', 'usb', 'file', 'ipp'],
             ConnectionType::values(),
         );
     }

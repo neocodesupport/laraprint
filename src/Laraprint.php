@@ -168,14 +168,17 @@ final class Laraprint
     }
 
     /**
-     * Scanne le **réseau** local pour détecter des imprimantes (port 9100 par défaut).
+     * Scanne le **réseau** local pour détecter des imprimantes (ports 9100/631/515 par défaut).
      *
-     * @param  string|null  $range  Plage CIDR/intervalle/IP, ou null pour le /24 local.
-     * @param  list<int>  $ports  Ports à tester.
-     * @return list<array{connection_type: string, settings: array<string, mixed>, name: string, printer_type: string}>
+     * @param  string|null  $range  Plage CIDR/intervalle/IP, ou null pour le(s) sous-réseau(x) local/locaux.
+     * @param  list<int>  $ports  Ports à tester, par ordre de priorité.
+     * @return list<array{connection_type: string, settings: array<string, mixed>, name: string, printer_type: ?string}>
      */
-    public static function scanNetworkPrinters(?string $range = null, array $ports = [9100], float $timeout = 0.3): array
-    {
+    public static function scanNetworkPrinters(
+        ?string $range = null,
+        array $ports = NetworkScanner::DEFAULT_PORTS,
+        float $timeout = 1.0,
+    ): array {
         return (new NetworkScanner)->scan($range, $ports, $timeout);
     }
 

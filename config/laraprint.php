@@ -40,6 +40,23 @@ return [
         ],
         'windows' => [
             'printer_name' => env('LARAPRINT_WINDOWS_PRINTER', 'EPSON TM-T20II Receipt'),
+
+            /*
+            | Impression PDF sous Windows.
+            |
+            | `Start-Process -Verb Print` dépend d'un gestionnaire shell « Imprimer »
+            | associé au type de fichier. Chrome/Edge s'enregistrent comme lecteur PDF
+            | par défaut mais n'exposent PAS ce verbe → l'impression PDF échoue.
+            |
+            | Renseignez un utilitaire d'impression PDF silencieux pour contourner :
+            |  - `pdf_print_bin`     : chemin vers SumatraPDF.exe ou PDFtoPrinter.exe
+            |                          (auto-détecté dans les emplacements usuels / le PATH
+            |                          s'il n'est pas fourni).
+            |  - `pdf_print_command` : gabarit de commande complet, jetons {printer} {file}
+            |                          (prioritaire ; pour tout autre outil).
+            */
+            'pdf_print_bin' => env('LARAPRINT_WINDOWS_PDF_BIN'),
+            'pdf_print_command' => env('LARAPRINT_WINDOWS_PDF_COMMAND'),
         ],
         'cups' => [
             'cups_name' => env('LARAPRINT_CUPS_NAME', 'POS-Printer'),

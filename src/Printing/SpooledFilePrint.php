@@ -119,7 +119,140 @@ final class SpooledFilePrint
             throw new RuntimeException('Nom d’imprimante Windows (settings.printer_name) manquant.');
         }
 
+        // Les PDF n'ont pas de verbe shell « Print » fiable sous Windows
+        // (Chrome/Edge ne l'exposent pas) : on passe par un utilitaire dédié.
+        if (strtolower(pathinfo($absolutePath, PATHINFO_EXTENSION)) === 'pdf') {
+            self::printWindowsPdf($absolutePath, $printerName);
+
+            return;
+        }
+
         self::printWindowsViaShell($absolutePath, $printerName);
+    }
+
+    /**
+     * Imprime un PDF sous Windows via un utilitaire silencieux (SumatraPDF,
+     * PDFtoPrinter, ou commande personnalisée). À défaut, tente le verbe shell
+     * « Print » et, en cas d'échec, lève une erreur explicite et actionnable.
+     */
+    private static function printWindowsPdf(string $absolutePath, string $printerName): void
+    {
+        $command = self::resolveWindowsPdfCommand($absolutePath, $printerName);
+
+        if ($command !== null) {
+            self::runCommand($command);
+
+            return;
+        }
+
+        try {
+            self::printWindowsViaShell($absolutePath, $printerName);
+        } catch (\Throwable $e) {
+            throw new RuntimeException(
+                "Impossible d'imprimer le PDF via le spouleur Windows : aucun gestionnaire « Imprimer » "
+                ."n'est associé aux fichiers .pdf (Chrome/Edge n'en fournissent pas). Installez un utilitaire "
+                ."d'impression PDF silencieux (SumatraPDF ou PDFtoPrinter) puis renseignez "
+                .'`config laraprint.connection.windows.pdf_print_bin` (LARAPRINT_WINDOWS_PDF_BIN), '
+                .'ou utilisez une imprimante réseau (IPP/CUPS). Détail : '.$e->getMessage(),
+                0,
+                $e,
+            );
+        }
+    }
+
+    /**
+     * Construit la commande d'impression PDF Windows à partir de la configuration
+     * (commande personnalisée > binaire fourni > auto-détection). Null si aucun
+     * utilitaire n'est disponible.
+     */
+    private static function resolveWindowsPdfCommand(string $file, string $printer): ?string
+    {
+        $config = function_exists('config') ? (array) config('laraprint.connection.windows', []) : [];
+
+        // 1. Gabarit de commande explicite, jetons {printer} et {file}.
+        $template = $config['pdf_print_command'] ?? null;
+        if (is_string($template) && $template !== '') {
+            return strtr($template, [
+                '{printer}' => escapeshellarg($printer),
+                '{file}' => escapeshellarg($file),
+            ]);
+        }
+
+        // 2. Binaire explicite, sinon auto-détection (SumatraPDF / PDFtoPrinter).
+        $bin = $config['pdf_print_bin'] ?? null;
+        if (! is_string($bin) || $bin === '') {
+            $bin = self::detectWindowsPdfBin();
+        }
+
+        if ($bin === null || $bin === '') {
+            return null;
+        }
+
+        return self::buildPdfBinCommand($bin, $file, $printer);
+    }
+
+    /**
+     * Recherche SumatraPDF / PDFtoPrinter dans les emplacements usuels et le PATH.
+     */
+    private static function detectWindowsPdfBin(): ?string
+    {
+        foreach (['ProgramFiles', 'ProgramFiles(x86)', 'LOCALAPPDATA'] as $envVar) {
+            $base = getenv($envVar);
+            if ($base === false || $base === '') {
+                continue;
+            }
+
+            foreach (['\\SumatraPDF\\SumatraPDF.exe', '\\SumatraPDF.exe'] as $suffix) {
+                $candidate = $base.$suffix;
+                if (is_file($candidate)) {
+                    return $candidate;
+                }
+            }
+        }
+
+        foreach (['SumatraPDF.exe', 'PDFtoPrinter.exe'] as $exe) {
+            $found = self::whichWindows($exe);
+            if ($found !== null) {
+                return $found;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Forge la ligne de commande selon l'utilitaire détecté (interface SumatraPDF
+     * par défaut pour un binaire inconnu).
+     */
+    private static function buildPdfBinCommand(string $bin, string $file, string $printer): string
+    {
+        $name = strtolower(basename($bin));
+
+        // PDFtoPrinter.exe "<fichier>" "<imprimante>"
+        if (str_contains($name, 'pdftoprinter')) {
+            return sprintf('%s %s %s', escapeshellarg($bin), escapeshellarg($file), escapeshellarg($printer));
+        }
+
+        // SumatraPDF.exe -print-to "<imprimante>" -silent -exit-when-done "<fichier>"
+        return sprintf(
+            '%s -print-to %s -silent -exit-when-done %s',
+            escapeshellarg($bin),
+            escapeshellarg($printer),
+            escapeshellarg($file),
+        );
+    }
+
+    private static function whichWindows(string $exe): ?string
+    {
+        $output = [];
+        $exit = 0;
+        @exec('where '.escapeshellarg($exe).' 2>NUL', $output, $exit);
+
+        if ($exit === 0 && isset($output[0]) && is_file(trim($output[0]))) {
+            return trim($output[0]);
+        }
+
+        return null;
     }
 
     private static function printWindowsViaShell(string $absolutePath, string $printerName): void

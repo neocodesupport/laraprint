@@ -59,6 +59,34 @@ final class SnmpQuery
         return $result;
     }
 
+    /**
+     * Identifie rapidement une imprimante : renvoie son nom (sysName) ou, à défaut,
+     * sa description (sysDescr). Best-effort : `null` si SNMP indisponible ou muet.
+     *
+     * Léger : une à deux requêtes seulement (contrairement à {@see query()}), pour
+     * être appelé pendant un scan réseau sans le ralentir.
+     */
+    public function name(string $host, string $community = 'public', float $timeout = 0.5): ?string
+    {
+        if (! function_exists('snmpget')) {
+            return null;
+        }
+
+        if (function_exists('snmp_set_valueretrieval') && defined('SNMP_VALUE_PLAIN')) {
+            snmp_set_valueretrieval(SNMP_VALUE_PLAIN);
+        }
+
+        $timeoutUs = (int) ($timeout * 1_000_000);
+        $name = $this->get($host, $community, self::OIDS['name'], $timeoutUs);
+        if ($name !== null && $name !== '') {
+            return $name;
+        }
+
+        $descr = $this->get($host, $community, self::OIDS['model'], $timeoutUs);
+
+        return $descr !== null && $descr !== '' ? $descr : null;
+    }
+
     private function get(string $host, string $community, string $oid, int $timeoutUs): ?string
     {
         try {
