@@ -5,6 +5,28 @@ Toutes les modifications notables de ce projet sont documentées dans ce fichier
 Le format s'appuie sur [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/),
 et ce projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
+## [1.3.0] - 2026-06-17
+
+### Ajouté
+- **Scan réseau multi-ports** (`Discovery\NetworkScanner`) : ports `9100`/`631`/`515` testés
+  par ordre de priorité (`DEFAULT_PORTS`), dédoublonnage par IP, scan par lots
+  (`BATCH_SIZE`) pour ne pas saturer la pile réseau.
+- **Détection multi-sous-réseaux locaux** via les adaptateurs réseau réels
+  (`Get-NetIPAddress` sous Windows, `ip -4 -o addr` sous Linux) ; l'astuce UDP devient
+  un simple repli. Méthodes publiques `cidrToNetwork()`, `parseWindowsAddresses()`,
+  `parseIpAddr()`, `printerTypeForPort()`.
+- **Enrichissement SNMP du nom** lors du scan (`SnmpQuery::name()`, best-effort).
+- **Impression PDF sous Windows** (`Printing\SpooledFilePrint`) via un utilitaire silencieux
+  (SumatraPDF / PDFtoPrinter, auto-détectés) avec config `pdf_print_bin` / `pdf_print_command`,
+  et message d'erreur actionnable à défaut.
+- **Événement `Events\PrinterDiscovered`** émis à chaque import (source `system`/`usb`/`network`/`mdns`).
+- **Enum `ConnectionType`** : ajout du case `Ipp`.
+
+### Modifié
+- `scanNetworkPrinters()` / `importNetworkPrinters()` : ports par défaut `DEFAULT_PORTS`,
+  timeout par défaut porté à `1.0`s.
+- Fix de la détection de connexion sous Windows (échecs via le set `except`, succès via `getpeername`).
+
 ## [1.2.3] - 2026-06-16
 
 ### Ajouté
@@ -133,6 +155,7 @@ Première version stable. Inclut l'ensemble des fonctionnalités ci-dessous.
 - Alignement du nom de package dans le README (`neocode/laraprint`).
 - Suppression d'un fichier artefact accidentel à la racine et nettoyage du `.gitignore`.
 
+[1.3.0]: https://github.com/neocodesupport/laraprint/releases/tag/v1.3.0
 [1.2.3]: https://github.com/neocodesupport/laraprint/releases/tag/v1.2.3
 [1.2.2]: https://github.com/neocodesupport/laraprint/releases/tag/v1.2.2
 [1.2.1]: https://github.com/neocodesupport/laraprint/releases/tag/v1.2.1
